@@ -1,11 +1,6 @@
 [build]
     publish = "./dist"
-    command = "npm run build"
-
-[build.environment]
-  
-[context.production.environment]
-    
+    command = "npm run build"    
 
 [[headers]]
     for = "/*"
@@ -19,6 +14,3 @@
     from = "/*"
     to = "/index.html"
     status = 200
-
-[[plugins]]
-  
