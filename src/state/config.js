@@ -11,6 +11,7 @@ let config = {
     walletUrl: 'https://wallet.testnet.near.org',
     nameSuffix: '.testnet',
     contractName: 'testnet',
+    didRegistryContractName: 'dids.vitalpointai.testnet',
 }
 
 if (process.env.REACT_APP_ENV === 'prod') {
@@ -21,6 +22,7 @@ if (process.env.REACT_APP_ENV === 'prod') {
         walletUrl: 'https://wallet.near.org',
         nameSuffix: '.near',
         contractName: 'near',
+        didRegistryContractName: 'did.near',
     }
 }
 

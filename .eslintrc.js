@@ -7,7 +7,6 @@ module.exports = {
         }
     },
 	rules: {
-        semi: [2, 'always'],
-        indent: [2, 'tab'],
+       
 	}
 };

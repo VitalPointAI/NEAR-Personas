@@ -4,6 +4,7 @@ import { appStore, onAppMount } from './state/app';
 import { Container } from './components/Container'
 import { Receiver } from './components/Receiver'
 import { Giver } from './components/Giver'
+import { CircularProgress } from '@material-ui/core';
 
 // helpers
 export const btnClass = 'btn btn-sm btn-outline-primary mb-3 '
@@ -18,13 +19,17 @@ const App = () => {
     };
     useEffect(onMount, []);
 
-    // console.log('state', state);
-
     const {
         accountData, funding, wallet
     } = state
+
+    console.log('state app', state)
     
     let children = null
+
+    if (!accountData || !wallet) {
+        children = <CircularProgress />
+    }
 
     if (accountData) {
         children = <Receiver {...{ state, dispatch }} />

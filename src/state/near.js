@@ -1,12 +1,16 @@
 import * as nearAPI from 'near-api-js'
 import { get, set, del } from '../utils/storage'
+import { ceramic } from '../utils/ceramic'
+import { profileSchema } from '../schemas/profile'
+import { personaSeedsSchema } from '../schemas/personaSeeds'
+import { IDX } from '@ceramicstudio/idx'
 
 import { config } from './config'
 
 export const {
     FUNDING_DATA, FUNDING_DATA_BACKUP, ACCOUNT_LINKS, GAS, SEED_PHRASE_LOCAL_COPY,
     networkId, nodeUrl, walletUrl, nameSuffix,
-    contractName,
+    contractName, didRegistryContractName
 } = config
 
 const {
@@ -24,17 +28,7 @@ const {
 } = nearAPI
 
 export const initNear = () => async ({ update, getState, dispatch }) => {
-
-    // // check returned from funding key -> claim the named account
-    // update('funding', false)
-    // if (!skipFunding) {
-    //     const fundingData = get(FUNDING_DATA)
-    //     if (fundingData && fundingData.key) {
-    //         update('funding', true)
-    //         return dispatch(hasFundingKeyFlow(fundingData))
-    //     }
-    // }
-
+    let finished = false
     const near = await nearAPI.connect({
         networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
     });
@@ -51,6 +45,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         }
         return true
     }
+
     // check localLinks, see if they're still valid
     const localLinks = get(ACCOUNT_LINKS, []).sort((a) => a.claimed ? 1 : -1)
     for (let i = 0; i < localLinks.length; i++) {
@@ -78,6 +73,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     wallet.signIn = () => {
         wallet.requestSignIn(contractName, 'Blah Blah')
     }
+
     wallet.signedIn = wallet.isSignedIn()
     if (wallet.signedIn) {
         wallet.balance = formatNearAmount((await wallet.account().getAccountBalance()).available, 2)
@@ -86,11 +82,14 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     const contract = await new nearAPI.Contract(wallet.account(), contractName, {
         changeMethods: ['send', 'create_account', 'create_account_and_claim'],
     })
+
     wallet.isAccountTaken = async (accountId) => {
         const accountTaken = await isAccountTaken(accountId + nameSuffix)
         update('app', { accountTaken, wasValidated: true })
     }
-    wallet.fundAccount = async (amount, accountId, recipientName) => {
+
+    wallet.fundAccount = async (amount, accountId, recipientName, owner) => {
+        
         if (accountId.indexOf(nameSuffix) > -1 || accountId.indexOf('.') > -1) {
             alert(nameSuffix + ' is added automatically and no "." is allowed. Please remove and try again.')
             return update('app.wasValidated', true)
@@ -102,15 +101,160 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         const keyPair = KeyPair.fromRandom('ed25519')
 
         const links = get(ACCOUNT_LINKS, [])
-        links.push({ key: keyPair.secretKey, accountId, recipientName, keyStored: Date.now() })
+        links.push({ key: keyPair.secretKey, accountId, recipientName, owner, keyStored: Date.now() })
         set(ACCOUNT_LINKS, links)
 
         // set(FUNDING_DATA, { key: keyPair.secretKey, accountId, recipientName, amount, funder_account_id: wallet.getAccountId() })
+        console.log('accountid', accountId)
+        console.log('amount', parseNearAmount(amount))
+       
         await contract.create_account({ new_account_id: accountId, new_public_key: keyPair.publicKey.toString() }, GAS, parseNearAmount(amount))
     }
 
-    update('', { near, wallet, links, claimed })
-};
+    // ********* Initiate Dids Registry Contract ************
+   
+    const accountId = wallet.account().accountId
+    
+
+//     let newKeyPair = KeyPair.fromString(process.env.DID_CONTRACT)
+//     let signer = await InMemorySigner.fromKeyPair(networkId, accountId, newKeyPair)
+//     const nextNear = await nearAPI.connect({
+//         networkId, nodeUrl, walletUrl, deps: { keyStore: signer.keyStore },
+//     });
+//    // const near = await nearApiJs.connect(Object.assign({deps: { keyStore: signer.keyStore }}, getConfig(process.env.NODE_ENV)))
+    const account = new nearAPI.Account(near.connection, accountId);
+    console.log('account', account)
+    const didRegistryContract = new nearAPI.Contract(account, didRegistryContractName, {
+        viewMethods: [
+            'getDID',
+            'getSchemas',
+            'findSchema',
+            'getDefinitions',
+            'findDefinition',
+            'findAlias',
+            'getAliases',
+            'hasDID'
+        ],
+        // Change methods can modify the state. But you don't receive the returned value when called.
+        changeMethods: [
+            'putDID',
+            'initialize',
+            'addSchema',
+            'addDefinition',
+            'addAlias'
+        ],
+    })
+
+     // ******** IDX Initialization *********
+
+    //Set App Ceramic Client
+    let appSeed = Buffer.from(process.env.APP_SEED.slice(0, 32))
+    let appClient = await ceramic.getAppCeramic(appSeed)
+    console.log('appClient', appClient)
+
+    let appDID = await ceramic.associateAppDID('vitalpointai.testnet', didRegistryContract, appClient)
+    //setAppDID(appDID)
+
+    // Associate app NEAR account with 3ID and store in contract and cache in local storage
+   // await ceramic.associateDID(appAccount, didRegistryContract, appClient)
+
+    // create app vault and definition if it doesn't exist
+    await ceramic.schemaSetup('vitalpointai.testnet', 'SeedsJWE', 'encrypted dao seeds', didRegistryContract, appClient, personaSeedsSchema)
+
+    let appAliases = {}
+    try {
+        let allAliases = await didRegistryContract.getAliases()
+    
+        //reconstruct aliases and set IDXs
+        let i = 0
+        
+        while (i < allAliases.length) {
+            let key = allAliases[i].split(':')
+            let alias = {[key[0]]: key[1]}
+            appAliases = {...appAliases, ...alias}
+            i++
+        }
+        console.log('app aliases', appAliases)
+        
+    } catch (err) {
+        console.log('error retrieving aliases', err)
+    }
+
+    let appIdx = new IDX({ ceramic: appClient, aliases: appAliases})
+
+    // Set Current User Ceramic Client
+    
+   
+        let did
+        let personaSeed
+        let userClient
+        let demDaoIdx
+        let currentAliases = {}
+        let curUserIdx
+        let curInfo
+        console.log('account id from account', account.accountId)
+        if(account.accountId){
+            let existingDid = await didRegistryContract.hasDID({accountId: account.accountId})
+        
+            if(existingDid){
+                did = await didRegistryContract.getDID({
+                    accountId: account.accountId
+                })
+                personaSeed = await ceramic.downloadSecret(appIdx, 'SeedsJWE', did)
+                if(personaSeed) {
+                    userClient = await ceramic.getCeramic(account, personaSeed)
+                    const currentUserCeramicClient = await ceramic.getCeramic(account, personaSeed)
+                    await ceramic.schemaSetup(account.accountId, 'profile', 'user profile data', didRegistryContract, currentUserCeramicClient, profileSchema)
+
+                    
+                    try {
+                        let allAliases = await didRegistryContract.getAliases()
+                    
+                        //reconstruct aliases and set IDXs
+                        let i = 0
+                        
+                        while (i < allAliases.length) {
+                            let key = allAliases[i].split(':')
+                            let alias = {[key[0]]: key[1]}
+                            currentAliases = {...currentAliases, ...alias}
+                            i++
+                        }
+                        console.log('current aliases', currentAliases)
+                        
+                    } catch (err) {
+                        console.log('error retrieving aliases', err)
+                    }
+
+                    curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
+                    console.log('curuseridx', curUserIdx)
+                    
+                    // Set Current User's Avatar
+                    curInfo = await curUserIdx.get('profile')
+                    console.log('curInfo', curInfo)
+                }
+            }
+        }
+    finished = true
+
+    update('', { near, wallet, links, claimed, currentAliases, curUserIdx, curInfo, didRegistryContract, appIdx, appAliases, did, accountId, finished })
+}
+
+export async function login() {
+    const near = await nearAPI.connect({
+        networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
+    });
+    const connection = new nearAPI.WalletConnection(near)
+    connection.requestSignIn(contractName, 'Near Personas')
+}
+
+export async function logout() {
+    const near = await nearAPI.connect({
+        networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
+    });
+    const connection = new nearAPI.WalletConnection(near)
+    connection.signOut()
+    window.location.replace(window.location.origin)
+}
 
 export const unclaimLink = (keyToFind) => async ({ update }) => {
     let links = get(ACCOUNT_LINKS, [])
@@ -130,7 +274,9 @@ export const unclaimLink = (keyToFind) => async ({ update }) => {
 
 export const keyRotation = () => async ({ update, getState, dispatch }) => {
     const state = getState()
+    console.log('key rotate state', state)
     const { key, accountId, publicKey, seedPhrase } = state.accountData
+    //const { appIdx, appSeed, didRegistryContract } = state
 
     const keyPair = KeyPair.fromString(key)
     const signer = await InMemorySigner.fromKeyPair(networkId, accountId, keyPair)
@@ -139,6 +285,84 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
     });
     const account = new nearAPI.Account(near.connection, accountId);
     const accessKeys = await account.getAccessKeys()
+    const ceramicSeed = Buffer.from(seedPhrase.slice(0, 32))
+    localStorage.setItem('nearprofile:seed:'+accountId, Buffer.from(seedPhrase).toString('base64'))
+       
+    // // encrypt and store seed in app's vault for later retrieval
+    // const appAccount = await wallet.getAccount('vitalpointai.testnet')
+    // const appClient = await ceramic.getCeramic(appAccount, Seed)
+    // let appDID = await ceramic.associateDAODID(demAccount, didsContract, demClient)
+    
+    const didContract = new nearAPI.Contract(account, didRegistryContractName, {
+        viewMethods: [
+            'getDID',
+            'getSchemas',
+            'findSchema',
+            'getDefinitions',
+            'findDefinition',
+            'findAlias',
+            'getAliases',
+            'hasDID'
+        ],
+        // Change methods can modify the state. But you don't receive the returned value when called.
+        changeMethods: [
+            'putDID',
+            'initialize',
+            'addSchema',
+            'addDefinition',
+            'addAlias'
+        ],
+    })
+
+    //Set App Ceramic Client
+    let appSeed = Buffer.from(process.env.APP_SEED.slice(0, 32))
+    let appClient = await ceramic.getAppCeramic(appSeed)
+    console.log('appClient', appClient)
+
+    let appAliases = {}
+    try {
+        let allAliases = await didContract.getAliases()
+    
+        //reconstruct aliases and set IDXs
+        let i = 0
+        
+        while (i < allAliases.length) {
+            let key = allAliases[i].split(':')
+            let alias = {[key[0]]: key[1]}
+            appAliases = {...appAliases, ...alias}
+            i++
+        }
+        console.log('app aliases', appAliases)
+        
+    } catch (err) {
+        console.log('error retrieving aliases', err)
+    }
+
+    let appIdx = new IDX({ ceramic: appClient, aliases: appAliases})
+    
+    let didExists = await didContract.hasDID({accountId: accountId})
+    if(didExists){
+        try {
+            did = await didContract.getDID({
+            accountId: accountId
+            })
+            console.log('key rotate did', did)
+        } catch (err) {
+            console.log('no did here either', err)
+        }
+    }
+   
+    if(!didExists){
+         // Set Current User Ceramic Client
+        const currentUserCeramicClient = await ceramic.getCeramic(accountId, ceramicSeed)
+        console.log('currentUserCeramicClient', currentUserCeramicClient)
+    
+        let upload = await ceramic.storeSeedSecret(appIdx, ceramicSeed, 'SeedsJWE', currentUserCeramicClient.did.id)
+
+        // Associate current user NEAR account with 3ID and store in contract and cache in local storage
+        await ceramic.associateDID(accountId, didContract, currentUserCeramicClient)
+    }
+    
     const actions = [
         deleteKey(PublicKey.from(accessKeys[0].public_key)),
         addKey(PublicKey.from(publicKey), fullAccessKey())
@@ -180,71 +404,3 @@ export const hasKey = async (key, accountId, near) => {
     }
     return false
 }
-
-
-/// Deprecated
-
-// export const hasFundingKeyFlow = ({ key, accountId, recipientName, amount, funder_account_id }) => async ({ update, getState, dispatch }) => {
-//     const keyPair = KeyPair.fromString(key)
-//     const keyExists = await hasKey(key, contractName)
-//     if (!keyExists) {
-//         dispatch(initNear(true))
-//     }
-
-//     const signer = await InMemorySigner.fromKeyPair(networkId, contractName, keyPair)
-//     const near = await nearAPI.connect({
-//         networkId, nodeUrl, walletUrl, deps: { keyStore: signer.keyStore },
-//     });
-//     const account = new nearAPI.Account(near.connection, contractName);
-//     const contract = await new nearAPI.Contract(account, contractName, {
-//         changeMethods: ['send', 'create_account_and_claim'],
-//         sender: account
-//     })
-
-//     const newKeyPair = KeyPair.fromRandom('ed25519')
-//     try {
-//         const links = get(ACCOUNT_LINKS, [])
-//         links.push({ key: newKeyPair.secretKey, accountId, recipientName, keyStored: Date.now() })
-//         set(ACCOUNT_LINKS, links)
-//     } catch(e) {
-//         alert('Browser error saving key. Still have funds. Please refresh this page.')
-//         return dispatch(initNear(true))
-//     }
-
-//     const links = get(ACCOUNT_LINKS, [])
-//     const hasLink = links.some(({ accountId: id }) => accountId === id)
-//     if (!hasLink) {
-//         alert('Browser error saving key. Still have funds. Please refresh this page.')
-//         return dispatch(initNear(true))
-//     }
-    
-//     let result
-//     try {
-//         result = await contract.create_account_and_claim({
-//             new_account_id: accountId,
-//             new_public_key: newKeyPair.publicKey.toString()
-//         }, GAS, '0')
-
-//         if (result === true) {
-//             del(FUNDING_DATA)
-//             fetch('https://hooks.zapier.com/hooks/catch/6370559/oc18t1b/', {
-//                 method: 'POST',
-//                 body: JSON.stringify({
-//                     funder_account_id,
-//                     alias: recipientName,
-//                     account_id: accountId,
-//                     amount,
-//                     time_created: Date.now()
-//                 })
-//             })
-//             dispatch(initNear())
-//         } else {
-//             dispatch(initNear(true))
-//         }
-//     } catch (e) {
-//         if (e.message.indexOf('no matching key pair found') === -1) {
-//             throw e
-//         }
-//         dispatch(initNear(true))
-//     }
-// }

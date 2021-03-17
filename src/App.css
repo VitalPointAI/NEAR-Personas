@@ -13,11 +13,7 @@ body {
     background-size: 200px;
     z-index: -1;
 }
-.container-custom {
-    margin: 12px 0;
-    max-width: 640px !important;
-    width: 100%;
-}
+
 .container-alert {
     position: fixed;
     top: 32px; left: 0;
@@ -35,13 +31,12 @@ textarea {
     max-width: 400px !important;
     height: 100px !important;
 }
-button {
-    background: white !important;
-}
+
 button:active, button:focus, button:hover {
-    color: white !important;
+    color: white ;
     background: #0d6efd !important;
-}
+} 
+
 button:active > img, button:focus > img, button:hover > img {
     filter: brightness(1000);
 }

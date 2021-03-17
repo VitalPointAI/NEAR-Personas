@@ -46,6 +46,7 @@ export const onAppMount = () => async ({ update, getState, dispatch }) => {
     const message = decodeURIComponent(url.searchParams.get('message') || '')
     const link = url.searchParams.get('link') || ''
     const accountId = url.searchParams.get('accountId')
+
     if (key && accountId) {
         const { seedPhrase, publicKey } = generateSeedPhrase()
         const keyExists = await hasKey(key, accountId)
