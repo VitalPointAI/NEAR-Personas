@@ -1,0 +1,24 @@
+[build]
+    publish = "./dist"
+    command = "npm run build"
+
+[build.environment]
+  
+[context.production.environment]
+    
+
+[[headers]]
+    for = "/*"
+    [headers.values]
+        X-Frame-Options = "deny"
+        Content-Security-Policy = """
+            frame-ancestors 'none'
+        """
+
+[[redirects]]
+    from = "/*"
+    to = "/index.html"
+    status = 200
+
+[[plugins]]
+  
