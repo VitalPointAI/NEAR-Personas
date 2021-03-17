@@ -51,11 +51,9 @@ class Ceramic {
   }
   
   async downloadSecret(idx, key, did) {
-    console.log('didx', idx)
-    console.log('key', key)
-    console.log('sdid', did)
+  
     let records = await idx.get(key)
-    console.log('records', records)
+   
     if(records){
       let i = 0
       while(i < records.seeds.length) {
@@ -97,9 +95,6 @@ class Ceramic {
   }
 
   async associateDID(accountId, contract, ceramic) {
-    console.log('associate did account', accountId)
-    console.log('assciate did contract', contract)
-    console.log('associate did ceramic', ceramic)
     let didContract = await this.useDidContractFullAccessKey()
     /** Restore any cached did first */
     const cached = localStorage.getItem('nearprofile:' + accountId + ':')
@@ -108,7 +103,7 @@ class Ceramic {
 
     // ensure it's registered in the contract, if not, put it back there
     let exists = await contract.hasDID({accountId: accountId})
-    console.log('exists', exists)
+    
     if(!exists){
       try {
           await didContract.putDID({
@@ -229,14 +224,13 @@ class Ceramic {
   async schemaSetup(accountId, schemaName, defDesc, contract, ceramicClient, schemaFormat){
 
     let didContract = await this.useDidContractFullAccessKey()
-    console.log('contract', didContract)
+  
     
     let aliases = {}
 
     const definitions = await contract.getDefinitions()
 
     const schemas = await contract.getSchemas()
-    console.log('schemas', schemas)
 
     // check for existing schema for this account
     let schemaExists

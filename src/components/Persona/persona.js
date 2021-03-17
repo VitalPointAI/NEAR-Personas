@@ -3,16 +3,9 @@ import React, { useState, useEffect } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 
 // Material UI Components
-import Button from '@material-ui/core/Button'
-import Paper from '@material-ui/core/Paper'
-import Card from '@material-ui/core/Card'
-import CardMedia from '@material-ui/core/CardMedia'
-import CardHeader from '@material-ui/core/CardHeader'
-import CardContent from '@material-ui/core/CardContent'
+
 import Grid from '@material-ui/core/Grid'
 import Typography from '@material-ui/core/Typography';
-import LockOpenTwoToneIcon from '@material-ui/icons/LockOpenTwoTone';
-import Avatar from '@material-ui/core/Avatar'
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -45,7 +38,6 @@ export default function Persona(props) {
     const [dataObj, setDataObj] = useState({})
     const [profileExists, setProfileExists] = useState(false)
 
-    console.log(props)
     const {
         state,
         accountId,
@@ -64,7 +56,6 @@ export default function Persona(props) {
 
         fetchData()
             .then((res) => {
-              console.log('res', res)
              res ? setProfileExists(true) : null
             })
         

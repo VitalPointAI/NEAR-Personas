@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { appStore, onAppMount } from '../state/app';
 import { flexClass } from '../App'
 import SignIn from '../components/SignIn/signIn'
 import LogoutButton from '../components/LogoutButton/logoutButton'
@@ -12,13 +11,11 @@ import Grid from '@material-ui/core/Grid'
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import MenuIcon from '@material-ui/icons/Menu';
 import Paper from '@material-ui/core/Paper';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
-import Link from '@material-ui/core/Link';
 import { CircularProgress } from '@material-ui/core';
 
 const useStyles = makeStyles((theme) => ({
@@ -48,9 +45,6 @@ export const Container = ({ children, state }) => {
 
     const classes = useStyles();
 
-  
-    console.log('container state', state)
-
     const [anchorEl, setAnchorEl] = useState(null);
     const [addPersonaClicked, setAddPersonaClicked] = useState(false)
     const [editPersonaClicked, setEditPersonaClicked] = useState(false)
@@ -58,10 +52,6 @@ export const Container = ({ children, state }) => {
     const {
         app, wallet, links, claimed, accountId
     } = state
-
-    console.log('state', state)
-    console.log('wallet', wallet)
-    console.log('children', children)
 
     useEffect(
         () => {
@@ -72,7 +62,6 @@ export const Container = ({ children, state }) => {
 
         fetchData()
             .then((res) => {
-              console.log('res', res)
              
             })
         

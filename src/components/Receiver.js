@@ -1,29 +1,15 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { share } from '../utils/mobile';
-import anime from 'animejs/lib/anime.es.js';
-import { onAlert } from '../state/app';
 import { keyRotation, walletUrl, SEED_PHRASE_LOCAL_COPY } from '../state/near';
 import { appStore, onAppMount } from '../state/app';
-import { btnClass, qs } from '../App'
-import { get } from '../utils/storage'
-
-import stocking from '../img/stocking.svg'
-import tweet from '../img/twitter.webp'
 
 import { makeStyles } from '@material-ui/core/styles';
 
 // Material UI Components
 import Button from '@material-ui/core/Button'
-import Paper from '@material-ui/core/Paper'
 import Card from '@material-ui/core/Card';
-import CardHeader from '@material-ui/core/CardHeader';
-import CardMedia from '@material-ui/core/CardMedia';
 import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
 import Grid from '@material-ui/core/Grid'
 import Typography from '@material-ui/core/Typography';
-import LockOpenTwoToneIcon from '@material-ui/icons/LockOpenTwoTone';
-import Avatar from '@material-ui/core/Avatar'
 import { red } from '@material-ui/core/colors';
 import Divider from '@material-ui/core/Divider'
 
@@ -54,8 +40,6 @@ const useStyles = makeStyles((theme) => ({
 export const Receiver = ({ dispatch }) => {
     const { state, update } = useContext(appStore);
     const { accountId, from, seedPhrase, message, link, keyExists } = state.accountData
- 
-    console.log('receive state context', state)
 
     const classes = useStyles();
 

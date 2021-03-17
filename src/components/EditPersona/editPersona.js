@@ -12,18 +12,11 @@ import DialogContent from '@material-ui/core/DialogContent'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogTitle from '@material-ui/core/DialogTitle'
 import LinearProgress from '@material-ui/core/LinearProgress'
-import Switch from '@material-ui/core/Switch'
-import FormControlLabel from '@material-ui/core/FormControlLabel'
 import Avatar from '@material-ui/core/Avatar'
 import Grid from '@material-ui/core/Grid'
-import Accordion from '@material-ui/core/Accordion';
-import AccordionSummary from '@material-ui/core/AccordionSummary';
-import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Typography from '@material-ui/core/Typography';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Divider from '@material-ui/core/Divider'
 
-import { profileSchema } from '../../schemas/profile'
 
 // ReactQuill Component
 import ReactQuill from 'react-quill';
@@ -73,16 +66,11 @@ export default function EditPersonaForm(props) {
     const [name, setName] = useState('')
     const [avatar, setAvatar] = useState(imageName)
     const [shortBio, setShortBio] = useState('')
-    const [fileHash, setFileHash] = useState('')
 
     const { register, handleSubmit, watch, errors } = useForm()
 
     const {
-        accountId,
         curUserIdx,
-        handleLoaded,
-        handleAvatarChange,
-        refreshAccount,
         state,
         handleUpdate,
         handleEditPersonaClickState
@@ -94,7 +82,7 @@ export default function EditPersonaForm(props) {
         async function fetchData() {
             
             let result = await curUserIdx.get('profile', curUserIdx.id)
-            console.log('result ', result)
+        
              if(result) {
                  result.date ? setDate(result.date) : setDate('')
                  result.avatar ? setAvatar(result.avatar) : setAvatar(imageName)
@@ -107,18 +95,9 @@ export default function EditPersonaForm(props) {
        
         fetchData()
           .then((res) => {
-            console.log('res', res)
+      
           })
     },[])
-
-    const onDropAvatar = async (pictureFiles, pictureDataURLs) => {
-        if(pictureDataURLs[0]!==null){
-          console.log('picture files', pictureFiles)
-       setAvatar(pictureDataURLs[0])
-        } else {
-           setAvatar(avatar)
-        }
-    }
 
     function handleFileHash(hash) {
       setAvatar(process.env.IPFS_PROVIDER + hash)
@@ -151,12 +130,7 @@ export default function EditPersonaForm(props) {
         let now = new Date().getTime()
        
         let formattedDate = formatDate(now)
-      console.log('owner', state.accountId)
-      console.log('date', formattedDate)
-      console.log('name', name)
-      console.log('avatar', avatar)
-      console.log('shortbio', shortBio)
-       
+    
         let record = {
             date: formattedDate,
             owner: state.accountId,
@@ -164,10 +138,9 @@ export default function EditPersonaForm(props) {
             avatar: avatar,
             shortBio: shortBio
         }
-        console.log('record', record)
-        console.log('curuserIdx', curUserIdx)
+     
         let result = await curUserIdx.set('profile', record)
-        console.log('result', result)
+     
 
       setFinished(true)
       handleUpdate(true)

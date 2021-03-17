@@ -22,8 +22,6 @@ const App = () => {
     const {
         accountData, funding, wallet
     } = state
-
-    console.log('state app', state)
     
     let children = null
 
@@ -38,7 +36,7 @@ const App = () => {
     if (funding) {
         children = <div class="container container-custom">
             <h2>DO NOT CLOSE OR REFRESH THIS PAGE</h2>
-            <h2>Creating Account...</h2>
+            <h2>Creating Persona...</h2>
         </div>
     }
 

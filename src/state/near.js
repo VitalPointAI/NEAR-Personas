@@ -105,8 +105,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         set(ACCOUNT_LINKS, links)
 
         // set(FUNDING_DATA, { key: keyPair.secretKey, accountId, recipientName, amount, funder_account_id: wallet.getAccountId() })
-        console.log('accountid', accountId)
-        console.log('amount', parseNearAmount(amount))
+       
        
         await contract.create_account({ new_account_id: accountId, new_public_key: keyPair.publicKey.toString() }, GAS, parseNearAmount(amount))
     }
@@ -123,7 +122,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 //     });
 //    // const near = await nearApiJs.connect(Object.assign({deps: { keyStore: signer.keyStore }}, getConfig(process.env.NODE_ENV)))
     const account = new nearAPI.Account(near.connection, accountId);
-    console.log('account', account)
+  
     const didRegistryContract = new nearAPI.Contract(account, didRegistryContractName, {
         viewMethods: [
             'getDID',
@@ -150,14 +149,10 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     //Set App Ceramic Client
     let appSeed = Buffer.from(process.env.APP_SEED.slice(0, 32))
     let appClient = await ceramic.getAppCeramic(appSeed)
-    console.log('appClient', appClient)
+    
 
     let appDID = await ceramic.associateAppDID('vitalpointai.testnet', didRegistryContract, appClient)
-    //setAppDID(appDID)
-
-    // Associate app NEAR account with 3ID and store in contract and cache in local storage
-   // await ceramic.associateDID(appAccount, didRegistryContract, appClient)
-
+   
     // create app vault and definition if it doesn't exist
     await ceramic.schemaSetup('vitalpointai.testnet', 'SeedsJWE', 'encrypted dao seeds', didRegistryContract, appClient, personaSeedsSchema)
 
@@ -174,8 +169,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
             appAliases = {...appAliases, ...alias}
             i++
         }
-        console.log('app aliases', appAliases)
-        
+              
     } catch (err) {
         console.log('error retrieving aliases', err)
     }
@@ -192,7 +186,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         let currentAliases = {}
         let curUserIdx
         let curInfo
-        console.log('account id from account', account.accountId)
+    
         if(account.accountId){
             let existingDid = await didRegistryContract.hasDID({accountId: account.accountId})
         
@@ -219,18 +213,17 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
                             currentAliases = {...currentAliases, ...alias}
                             i++
                         }
-                        console.log('current aliases', currentAliases)
+                       
                         
                     } catch (err) {
                         console.log('error retrieving aliases', err)
                     }
 
                     curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
-                    console.log('curuseridx', curUserIdx)
-                    
+                                     
                     // Set Current User's Avatar
                     curInfo = await curUserIdx.get('profile')
-                    console.log('curInfo', curInfo)
+                  
                 }
             }
         }
@@ -274,7 +267,7 @@ export const unclaimLink = (keyToFind) => async ({ update }) => {
 
 export const keyRotation = () => async ({ update, getState, dispatch }) => {
     const state = getState()
-    console.log('key rotate state', state)
+  
     const { key, accountId, publicKey, seedPhrase } = state.accountData
     //const { appIdx, appSeed, didRegistryContract } = state
 
@@ -287,12 +280,7 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
     const accessKeys = await account.getAccessKeys()
     const ceramicSeed = Buffer.from(seedPhrase.slice(0, 32))
     localStorage.setItem('nearprofile:seed:'+accountId, Buffer.from(seedPhrase).toString('base64'))
-       
-    // // encrypt and store seed in app's vault for later retrieval
-    // const appAccount = await wallet.getAccount('vitalpointai.testnet')
-    // const appClient = await ceramic.getCeramic(appAccount, Seed)
-    // let appDID = await ceramic.associateDAODID(demAccount, didsContract, demClient)
-    
+          
     const didContract = new nearAPI.Contract(account, didRegistryContractName, {
         viewMethods: [
             'getDID',
@@ -317,7 +305,7 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
     //Set App Ceramic Client
     let appSeed = Buffer.from(process.env.APP_SEED.slice(0, 32))
     let appClient = await ceramic.getAppCeramic(appSeed)
-    console.log('appClient', appClient)
+
 
     let appAliases = {}
     try {
@@ -332,7 +320,6 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
             appAliases = {...appAliases, ...alias}
             i++
         }
-        console.log('app aliases', appAliases)
         
     } catch (err) {
         console.log('error retrieving aliases', err)
@@ -346,7 +333,7 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
             did = await didContract.getDID({
             accountId: accountId
             })
-            console.log('key rotate did', did)
+         
         } catch (err) {
             console.log('no did here either', err)
         }
@@ -355,7 +342,7 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
     if(!didExists){
          // Set Current User Ceramic Client
         const currentUserCeramicClient = await ceramic.getCeramic(accountId, ceramicSeed)
-        console.log('currentUserCeramicClient', currentUserCeramicClient)
+    
     
         let upload = await ceramic.storeSeedSecret(appIdx, ceramicSeed, 'SeedsJWE', currentUserCeramicClient.did.id)
 

@@ -1,16 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MemoryRouter as Router } from 'react-router';
-import { Link as RouterLink } from 'react-router-dom';
-import { onAlert } from '../state/app';
-import { nameSuffix, unclaimLink } from '../state/near';
-import { share } from '../utils/mobile';
-import { flexClass, btnClass, qs } from '../App'
-import { getVideoId } from '../utils/youtube'
-import SignIn from '../components/SignIn/signIn'
-import LogoutButton from '../components/LogoutButton/logoutButton'
-import Persona from '../components/Persona/persona'
 import PersonaCard from '../components/PersonaCard/personaCard'
-import AddPersonaForm from '../components/AddPersona/addPersona'
 
 
 const forExample = `(for example: "bestie.near" or "squad.near")`
@@ -21,16 +11,7 @@ const getLink = (accountId, key, wallet) => `?accountId=${accountId}&key=${key}&
 import { makeStyles } from '@material-ui/core/styles'
 import Grid from '@material-ui/core/Grid'
 import Divider from '@material-ui/core/Divider'
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
-import MenuIcon from '@material-ui/icons/Menu';
-import Paper from '@material-ui/core/Paper';
-import Menu from '@material-ui/core/Menu';
-import MenuItem from '@material-ui/core/MenuItem';
-import Link from '@material-ui/core/Link';
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -62,16 +43,7 @@ export const Giver = ({ state, update, dispatch }) => {
         app, wallet, links, claimed, accountId
     } = state
 
-    console.log('giver state', state)
-
-    const [id, setId] = useState('')
-    const [disabled, setDisabled] = useState(true)
-    const [message, setMessage] = useState('')
-    const [link, setLink] = useState('')
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [addPersonaClicked, setAddPersonaClicked] = useState(false)
     const [editPersonaClicked, setEditPersonaClicked] = useState(false)
-    const [avatar, setAvatar] = useState()
     const [countOfClaims, setCountOfClaims] = useState()
     const [countOfLinks, setCountOfLinks] = useState()
 
@@ -103,37 +75,20 @@ export const Giver = ({ state, update, dispatch }) => {
         
         fetchData()
             .then((res) => {
-              console.log('res', res)
+      
             })
         
     }, [countOfClaims, countOfLinks]
     )
-   
-    const handleClick = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
 
 
     function handleEditPersonaClick(property){
         setEditPersonaClicked(property)
     }
 
-    function handleAvatarChange(avatar){
-        setAvatar(avatar)
-    }
-
-    const checkDisabled = () => {
-        setTimeout(() => setDisabled(!!document.querySelectorAll(':invalid').length), 250)
-    }
-
     return (
         <Router>
         <>
-        
         <Grid container alignItems="center" justify="space-evenly" spacing={2} style={{marginBottom: '20px'}}>
             {countOfLinks > 0 ? 
                 (<> <Grid item xs={12} sm={12} md={12} lg={12} xl={12} >

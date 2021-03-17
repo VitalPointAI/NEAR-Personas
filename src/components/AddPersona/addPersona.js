@@ -54,8 +54,6 @@ export default function AddPersonaForm(props) {
     const [finished, setFinished] = useState(true)
     const [id, setId] = useState('')
     const [amount, setAmount] = useState('')
-    const [message, setMessage] = useState('')
-    const [link, setLink] = useState('')
 
     const { register, handleSubmit, watch, errors, transform } = useForm()
 
@@ -66,7 +64,6 @@ export default function AddPersonaForm(props) {
     
     const classes = useStyles()
 
-    console.log('add app state', state)
 
     useEffect(() => {
         
@@ -75,23 +72,6 @@ export default function AddPersonaForm(props) {
     const handleClose = () => {
         handleAddPersonaClick(false)
         setOpen(!open)
-    }
-
-    const handleNameChange = (event) => {
-        let value = event.target.value;
-        setName(value)
-    }
-
-    const onSubmit = async (values) => {
-        event.preventDefault();
-        setFinished(false)
-       
-      
-      
-
-      setFinished(true)
-      handleLoaded(false)
-      setOpen(false)
     }
     
         return (

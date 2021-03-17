@@ -45,9 +45,7 @@ export default function FileUpload(props) {
         const buffer = Buffer.from(reader.result)
         ipfsApi.add(buffer)
         .then((response) => {
-        console.log(response)
         ipfsId = response[0].hash
-        console.log(ipfsId)
         setAddedFileHash(ipfsId)
         handleFileHash(ipfsId)
         }).catch((err) => {
