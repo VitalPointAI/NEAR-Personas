@@ -34,8 +34,8 @@
         "rimraf": "^3.0.2"
     },
     "resolutions": {
-        "ipld-dag-cbor": "VitalPointAI/js-ipld-dag-cbor#ceramiccompat",
-        "multicodec": "2.0.0"
+        "multicodec": "2.0.0",
+        "ipld-dag-cbor": "VitalPointAI/js-ipld-dag-cbor#ceramiccompat"
     },
     "browserslist": [
         "last 2 Chrome versions"
