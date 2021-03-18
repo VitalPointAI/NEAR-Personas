@@ -107,7 +107,7 @@ export const Container = ({ children, state }) => {
             </Menu>
 
             <Typography variant="h6" className={classes.title} >
-            <a href="/" style={{color: 'white'}}>NEAR PERSONAS</a>
+            <a href="/" style={{color: 'white'}}>NEAR PERSONAS (TestNet)</a>
             </Typography>
             {wallet && wallet.signedIn ? <LogoutButton /> : null }
         </Toolbar>
