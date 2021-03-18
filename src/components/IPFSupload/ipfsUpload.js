@@ -29,7 +29,7 @@ export default function FileUpload(props) {
 
     const classes = useStyles();
 
-    const ipfsApi = ipfsAPI('localhost', '5001')
+    const ipfsApi = ipfsAPI({host:'ipfs.infura.io', port: '5001', protocol: 'https'})
   
     captureFile = (event) => {
         event.stopPropagation()
