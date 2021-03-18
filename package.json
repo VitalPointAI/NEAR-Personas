@@ -22,7 +22,8 @@
         "react-hook-form": "^6.15.4",
         "react-quill": "^1.3.5",
         "react-router": "^5.2.0",
-        "react-router-dom": "^5.2.0"        
+        "react-router-dom": "^5.2.0",
+        "ipld-dag-cbor": "VitalPointAI/js-ipld-dag-cbor#ceramiccompat"  
     },
     "devDependencies": {
         "@babel/core": "^7.12.10",
@@ -34,8 +35,7 @@
         "rimraf": "^3.0.2"
     },
     "resolutions": {
-        "multicodec": "2.0.0",
-        "ipld-dag-cbor": "VitalPointAI/js-ipld-dag-cbor#ceramiccompat"
+        "multicodec": "2.0.0"        
     },
     "browserslist": [
         "last 2 Chrome versions"
