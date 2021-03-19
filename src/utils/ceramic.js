@@ -229,6 +229,7 @@ class Ceramic {
     let aliases = {}
 
     const definitions = await contract.getDefinitions()
+    console.log('definitions', definitions)
 
     const schemas = await contract.getSchemas()
 
@@ -270,7 +271,8 @@ class Ceramic {
     let m = 0
     while (m < definitions.length) {
         let key = definitions[m].split(':')
-        if (key[0] == accountId && key[1] == schemaName){
+       // if (key[0] == accountId && key[1] == schemaName){
+          if (key[1] == schemaName){
         
         aliases = {
           [schemaName]: key[2]

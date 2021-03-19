@@ -80,6 +80,7 @@ export default function PersonaCard(props) {
   
               try {
                   let allAliases = await state.didRegistryContract.getAliases()
+                  console.log('allAliases', allAliases)
               
                   //reconstruct aliases and set IDXs
                   let i = 0
@@ -96,10 +97,13 @@ export default function PersonaCard(props) {
               }
               
               let userIdx = new IDX({ ceramic: demClient, aliases: currentAliases})
+              console.log('useridx', userIdx)
               setCurUserIdx(userIdx)
+              console.log('curuserIdx', curUserIdx)
                  
 
                 let result = await userIdx.get('profile', userIdx.id)
+                console.log('result', result)
             
               let i = 0
               while (i < state.claimed.length) {
