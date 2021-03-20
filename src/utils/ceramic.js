@@ -226,12 +226,13 @@ class Ceramic {
     let didContract = await this.useDidContractFullAccessKey()
   
     
-    let aliases = {}
+  //  let aliases = {}
 
     const definitions = await contract.getDefinitions()
     console.log('definitions', definitions)
 
     const schemas = await contract.getSchemas()
+    console.log('schemas', schemas)
 
     // check for existing schema for this account
     let schemaExists
@@ -274,9 +275,9 @@ class Ceramic {
        // if (key[0] == accountId && key[1] == schemaName){
           if (key[1] == schemaName){
         
-        aliases = {
-          [schemaName]: key[2]
-        }
+        // aliases = {
+        //   [schemaName]: key[2]
+        // }
       
         let recordAlias = schemaName +':'+ key[2]
       
@@ -325,9 +326,9 @@ class Ceramic {
         console.log('definition issue', err)
       }
 
-        aliases = {
-          [schemaName]: definition.id.toString()
-        }
+        // aliases = {
+        //   [schemaName]: definition.id.toString()
+        // }
       
         let recordAlias = schemaName +':'+ definition.id.toString()
 
@@ -356,7 +357,7 @@ class Ceramic {
         }
     }
     
-    return aliases
+    return true
   }
 
 

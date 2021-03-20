@@ -62,6 +62,7 @@ export default function PersonaCard(props) {
 
               let did
               let currentAliases = {}
+              console.log('accountid', accountId)
               let existingDid = await state.didRegistryContract.hasDID({accountId: accountId})
               if(existingDid){
               try {

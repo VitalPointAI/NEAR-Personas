@@ -186,15 +186,16 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         let currentAliases = {}
         let curUserIdx
         let curInfo
-    
+   
         if(account.accountId){
             let existingDid = await didRegistryContract.hasDID({accountId: account.accountId})
-        
+            console.log('existingDID', existingDid)
             if(existingDid){
                 did = await didRegistryContract.getDID({
                     accountId: account.accountId
                 })
                 personaSeed = await ceramic.downloadSecret(appIdx, 'SeedsJWE', did)
+                console.log('personaSeed', personaSeed)
                 if(personaSeed) {
                     userClient = await ceramic.getCeramic(account, personaSeed)
                     const currentUserCeramicClient = await ceramic.getCeramic(account, personaSeed)
@@ -225,7 +226,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
                     curInfo = await curUserIdx.get('profile')
                   
                 }
-            }
+            } 
         }
     finished = true
 
@@ -348,6 +349,7 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
 
         // Associate current user NEAR account with 3ID and store in contract and cache in local storage
         await ceramic.associateDID(accountId, didContract, currentUserCeramicClient)
+        await ceramic.schemaSetup(accountId, 'profile', 'user profile data', didContract, currentUserCeramicClient, profileSchema)
     }
     
     const actions = [
