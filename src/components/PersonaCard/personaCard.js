@@ -3,6 +3,7 @@ import { appStore, onAppMount } from '../../state/app';
 import { ceramic } from '../../utils/ceramic'
 import { IDX } from '@ceramicstudio/idx'
 import EditPersonaForm from '../EditPersona/editPersona'
+import * as nearAPI from 'near-api-js'
 
 
 // Material UI Components
@@ -42,6 +43,7 @@ export default function PersonaCard(props) {
      const [display, setDisplay] = useState(false)
      const [isUpdated, setIsUpdated] = useState(false)
      const [anchorEl, setAnchorEl] = useState(null);
+     const [did, setDid] = useState()
 
     const classes = useStyles();
 
@@ -67,29 +69,44 @@ export default function PersonaCard(props) {
               if(existingDid){
               try {
                 did = await state.didRegistryContract.getDID({accountId: accountId})
+                setDid(did)
               } catch (err) {
                 console.log('no did', err)
               }
            
-              let demSeed = Buffer.from(localStorage.getItem('nearprofile:seed:'+accountId).slice(0, 32))
-              if(!demSeed){
-              demSeed = await ceramic.downloadSecret(state.appIdx, 'SeedsJWE', did)
-              }
-              
+      
+              let demSeed = await ceramic.downloadSecret(state.appIdx, 'SeedsJWE', did)
+          
+              let thisAccount = new nearAPI.Account(state.near.connection, accountId)
+              let demClient = await ceramic.getCeramic(thisAccount, demSeed)
 
-              let demClient = await ceramic.getCeramic(state.wallet.account(), demSeed)
-  
+              let definitions = await state.didRegistryContract.getDefinitions()
+             
+              let o = 0
+              let profileDef
+              while(o < definitions.length) {
+                let key = definitions[o].split(':')
+                if(key[0] == accountId && key[1] == 'profile'){
+                  profileDef = key[2]
+                  break
+                }
+                o++
+              }
+           
               try {
                   let allAliases = await state.didRegistryContract.getAliases()
                   console.log('allAliases', allAliases)
               
-                  //reconstruct aliases and set IDXs
+                  //reconstruct aliases, get profile alias, and set IDXs
                   let i = 0
-                  
+                  let profileAlias
                   while (i < allAliases.length) {
                       let key = allAliases[i].split(':')
                       let alias = {[key[0]]: key[1]}
-                      currentAliases = {...currentAliases, ...alias}
+                      if (alias.profile == profileDef) {
+                        currentAliases = {...currentAliases, ...alias}
+                        break
+                      }
                       i++
                   }
           
@@ -98,13 +115,15 @@ export default function PersonaCard(props) {
               }
               
               let userIdx = new IDX({ ceramic: demClient, aliases: currentAliases})
-              console.log('useridx', userIdx)
+            
               setCurUserIdx(userIdx)
-              console.log('curuserIdx', curUserIdx)
+            
+              let curUserIndex = await userIdx.getIndex()
+             
                  
 
                 let result = await userIdx.get('profile', userIdx.id)
-                console.log('result', result)
+               
             
               let i = 0
               while (i < state.claimed.length) {
@@ -169,7 +188,7 @@ export default function PersonaCard(props) {
               avatar = {<Avatar variant="square" src={avatar} className={classes.square} />}
            />
               <CardContent>
-                <Typography gutterBottom variant="h6">
+                <Typography gutterBottom variant="h6" noWrap={true}>
                   {accountId}
                 </Typography>
               </CardContent>
@@ -196,6 +215,8 @@ export default function PersonaCard(props) {
                 handleEditPersonaClickState={handleEditPersonaClickState}
                 curUserIdx={curUserIdx}
                 handleUpdate={handleUpdate}
+                did={did}
+                accountId={accountId}
                 /> : null }
 
             </CardActions>

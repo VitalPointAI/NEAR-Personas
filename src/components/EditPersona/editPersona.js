@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form'
 import { makeStyles } from '@material-ui/core/styles'
 import FileUpload from '../IPFSupload/ipfsUpload'
+import { ceramic } from '../../utils/ceramic'
+import * as nearAPI from 'near-api-js'
+import { IDX } from '@ceramicstudio/idx'
 
 // Material UI components
 import Button from '@material-ui/core/Button'
@@ -66,22 +69,79 @@ export default function EditPersonaForm(props) {
     const [name, setName] = useState('')
     const [avatar, setAvatar] = useState(imageName)
     const [shortBio, setShortBio] = useState('')
+    const [curUserIdx, setCurUserIdx] = useState()
 
     const { register, handleSubmit, watch, errors } = useForm()
 
     const {
-        curUserIdx,
         state,
         handleUpdate,
-        handleEditPersonaClickState
+        handleEditPersonaClickState,
+        accountId
     } = props
     
     const classes = useStyles()
 
     useEffect(() => {
         async function fetchData() {
+          let did
+          let currentAliases = {}
+        
+          let existingDid = await state.didRegistryContract.hasDID({accountId: accountId})
+          if(existingDid){
+            try {
+              did = await state.didRegistryContract.getDID({accountId: accountId})
+              console.log('did here', did)
+            } catch (err) {
+              console.log('no did', err)
+            }
+       
+         
+            let demSeed = await ceramic.downloadSecret(state.appIdx, 'SeedsJWE', did)
+      
+          
+            let thisAccount = new nearAPI.Account(state.near.connection, accountId)
+            let demClient = await ceramic.getCeramic(thisAccount, demSeed)
+
+            let definitions = await state.didRegistryContract.getDefinitions()
+        
+            let o = 0
+            let profileDef
+            while(o < definitions.length) {
+              let key = definitions[o].split(':')
+              if(key[0] == accountId && key[1] == 'profile'){
+                profileDef = key[2]
+                break
+              }
+              o++
+            }
+           
+            try {
+                let allAliases = await state.didRegistryContract.getAliases()
+                console.log('allAliases', allAliases)
             
-            let result = await curUserIdx.get('profile', curUserIdx.id)
+                //reconstruct aliases, get profile alias, and set IDXs
+                let i = 0
+                let profileAlias
+                while (i < allAliases.length) {
+                    let key = allAliases[i].split(':')
+                    let alias = {[key[0]]: key[1]}
+                    if (alias.profile == profileDef) {
+                      currentAliases = {...currentAliases, ...alias}
+                      break
+                    }
+                    i++
+                }
+        
+            } catch (err) {
+                console.log('error retrieving aliases', err)
+            }
+          
+            let userIdx = new IDX({ ceramic: demClient, aliases: currentAliases})
+            setCurUserIdx(userIdx)
+          
+
+            let result = await userIdx.get('profile', did)
         
              if(result) {
                  result.date ? setDate(result.date) : setDate('')
@@ -89,7 +149,7 @@ export default function EditPersonaForm(props) {
                  result.shortBio ? setShortBio(result.shortBio) : setShortBio('')
                  result.name ? setName(result.name) : setName('')
               }
-
+          }
           
         }
        

@@ -342,7 +342,7 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
    
     if(!didExists){
          // Set Current User Ceramic Client
-        const currentUserCeramicClient = await ceramic.getCeramic(accountId, ceramicSeed)
+        const currentUserCeramicClient = await ceramic.getCeramic(account, ceramicSeed)
     
     
         let upload = await ceramic.storeSeedSecret(appIdx, ceramicSeed, 'SeedsJWE', currentUserCeramicClient.did.id)

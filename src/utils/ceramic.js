@@ -224,9 +224,6 @@ class Ceramic {
   async schemaSetup(accountId, schemaName, defDesc, contract, ceramicClient, schemaFormat){
 
     let didContract = await this.useDidContractFullAccessKey()
-  
-    
-  //  let aliases = {}
 
     const definitions = await contract.getDefinitions()
     console.log('definitions', definitions)
@@ -272,12 +269,7 @@ class Ceramic {
     let m = 0
     while (m < definitions.length) {
         let key = definitions[m].split(':')
-       // if (key[0] == accountId && key[1] == schemaName){
-          if (key[1] == schemaName){
-        
-        // aliases = {
-        //   [schemaName]: key[2]
-        // }
+        if (key[0] == accountId && key[1] == schemaName){
       
         let recordAlias = schemaName +':'+ key[2]
       
@@ -326,11 +318,9 @@ class Ceramic {
         console.log('definition issue', err)
       }
 
-        // aliases = {
-        //   [schemaName]: definition.id.toString()
-        // }
       
         let recordAlias = schemaName +':'+ definition.id.toString()
+        console.log('definition', definition)
 
         try {
           let anAlias = await didContract.findAlias({alias: recordAlias})
