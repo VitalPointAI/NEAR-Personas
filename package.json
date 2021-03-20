@@ -45,7 +45,7 @@
         "preinstall": "npx npm-force-resolutions",
         "deploy": "REACT_APP_ENV=\"prod\" yarn build && cp -a static/* dist && gh-pages -d dist",
         "prebuild": "npm run clean",
-        "build": "npx npm-force-resolutions && npx npm-force-resolutions && parcel build src/index.html --public-url ./ --no-source-maps",
+        "build": "npx npm-force-resolutions && parcel build src/index.html --public-url ./ --no-source-maps",
         "clean": "rimraf ./dist && rimraf .parcel-cache",
         "fix": "eslint src/ --fix",
         "start": "env-cmd -f ./.env parcel src/index.html --open"
