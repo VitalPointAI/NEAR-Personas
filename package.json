@@ -16,7 +16,7 @@
         "crypto": "^1.0.1",
         "env-cmd": "^10.1.0",
         "ipfs-api": "^26.1.2",
-        "near-api-js": "^0.38.0",
+        "near-api-js": "^0.39.0",
         "near-seed-phrase": "^0.1.1",
         "react": "^16.13.1",
         "react-dom": "^16.13.1",
