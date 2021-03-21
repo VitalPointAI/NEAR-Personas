@@ -189,13 +189,13 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
    
         if(account.accountId){
             let existingDid = await didRegistryContract.hasDID({accountId: account.accountId})
-            console.log('existingDID', existingDid)
+           
             if(existingDid){
                 did = await didRegistryContract.getDID({
                     accountId: account.accountId
                 })
                 personaSeed = await ceramic.downloadSecret(appIdx, 'SeedsJWE', did)
-                console.log('personaSeed', personaSeed)
+               
                 if(personaSeed) {
                     userClient = await ceramic.getCeramic(account, personaSeed)
                     const currentUserCeramicClient = await ceramic.getCeramic(account, personaSeed)

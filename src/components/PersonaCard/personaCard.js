@@ -64,7 +64,7 @@ export default function PersonaCard(props) {
 
               let did
               let currentAliases = {}
-              console.log('accountid', accountId)
+             
               let existingDid = await state.didRegistryContract.hasDID({accountId: accountId})
               if(existingDid){
               try {
@@ -95,7 +95,7 @@ export default function PersonaCard(props) {
            
               try {
                   let allAliases = await state.didRegistryContract.getAliases()
-                  console.log('allAliases', allAliases)
+                
               
                   //reconstruct aliases, get profile alias, and set IDXs
                   let i = 0

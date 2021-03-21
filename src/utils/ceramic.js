@@ -99,7 +99,6 @@ class Ceramic {
     /** Restore any cached did first */
     const cached = localStorage.getItem('nearprofile:' + accountId + ':')
 
-    console.log('associate cached', cached)
 
     // ensure it's registered in the contract, if not, put it back there
     let exists = await contract.hasDID({accountId: accountId})
@@ -226,10 +225,8 @@ class Ceramic {
     let didContract = await this.useDidContractFullAccessKey()
 
     const definitions = await contract.getDefinitions()
-    console.log('definitions', definitions)
 
     const schemas = await contract.getSchemas()
-    console.log('schemas', schemas)
 
     // check for existing schema for this account
     let schemaExists
@@ -320,7 +317,6 @@ class Ceramic {
 
       
         let recordAlias = schemaName +':'+ definition.id.toString()
-        console.log('definition', definition)
 
         try {
           let anAlias = await didContract.findAlias({alias: recordAlias})

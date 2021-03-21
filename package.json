@@ -34,18 +34,16 @@
         "rimraf": "^3.0.2"
     },
     "resolutions": {
-        "ipld-dag-cbor": "VitalPointAI/js-ipld-dag-cbor#ceramiccompat",
-        "multicodec": "2.0.0"
+        "cids": "1.1.6"
     },
     "browserslist": [
         "last 2 Chrome versions"
     ],
     "scripts": {
-        "deploy:testnet": "npm run build && gh-pages -d dist",
-        "preinstall": "npx npm-force-resolutions",
-        "deploy": "REACT_APP_ENV=\"prod\" yarn build && cp -a static/* dist && gh-pages -d dist",
-        "prebuild": "npm run clean",
-        "build": "npx npm-force-resolutions && parcel build src/index.html --public-url ./ --no-source-maps",
+        "deploy:testnet": "yarn build",
+        "deploy": "REACT_APP_ENV=\"prod\" yarn build && cp -a static/* dist",
+        "prebuild": "yarn clean",
+        "build": "parcel build src/index.html --public-url ./ --no-source-maps",
         "clean": "rimraf ./dist && rimraf .parcel-cache",
         "fix": "eslint src/ --fix",
         "start": "env-cmd -f ./.env parcel src/index.html --open"

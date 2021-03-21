@@ -64,7 +64,6 @@ export default function AddPersonaForm(props) {
     
     const classes = useStyles()
 
-
     useEffect(() => {
         
     },[])
@@ -82,18 +81,22 @@ export default function AddPersonaForm(props) {
                     <div>
                         <TextField
                             id="accountName"
+                            required
                             placeholder=" "
                             autoFocus
                             margin="dense"
                             variant="outlined"
                             name="id"
                             label="Account Name"
+                            helperText="2-48 characters, no spaces, no symbols (except -)"
                             minLength={state.app.accountTaken ? 999999 : 2}
                             maxLength={48}
                             pattern="^(([a-z\d]+[\-_])*[a-z\d]+$"
                             value={id}
                             inputRef={register({
-                                required: true                           
+                                validate: {
+                                notTaken: value => !state.app.accountTaken
+                                }        
                             })}
                             InputProps={{
                                 endAdornment: <><InputAdornment position="end">{nameSuffix}</InputAdornment></>,
@@ -105,8 +108,8 @@ export default function AddPersonaForm(props) {
                             }}
                         />
                     {errors.id && <p style={{color: 'red'}}>You must provide an account name.</p>}
-                    <div class="invalid-feedback">
-                        {state.app.accountTaken ? 'Account name is already taken' : '2-48 characters, no spaces, no symbols'}
+                    <div>
+                        {state.app.accountTaken ? 'Account name is already taken' : null}
                     </div>
                   </div>
                   
@@ -142,6 +145,8 @@ export default function AddPersonaForm(props) {
               {!finished ? <LinearProgress className={classes.progress} style={{marginBottom: '25px' }}/> : (
               <DialogActions>
               <Button
+                disabled={state.app.accountTaken}
+                variant="contained"
                 color="primary"
                 onClick={() => state.wallet.fundAccount(amount.toString(), id, qs('#personaName').value, state.accountId)}>
                 CREATE PERSONA

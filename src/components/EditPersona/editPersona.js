@@ -118,8 +118,7 @@ export default function EditPersonaForm(props) {
            
             try {
                 let allAliases = await state.didRegistryContract.getAliases()
-                console.log('allAliases', allAliases)
-            
+              
                 //reconstruct aliases, get profile alias, and set IDXs
                 let i = 0
                 let profileAlias
