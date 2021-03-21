@@ -34,7 +34,8 @@
         "rimraf": "^3.0.2"
     },
     "resolutions": {
-        "cids": "1.1.6"
+        "cids": "1.1.6",
+        "multihashing-async": "2.1.2"
     },
     "browserslist": [
         "last 2 Chrome versions"
