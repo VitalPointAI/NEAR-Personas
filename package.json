@@ -42,7 +42,7 @@
     "scripts": {
         "deploy:testnet": "yarn build",
         "deploy": "REACT_APP_ENV=\"prod\" yarn build && cp -a static/* dist",
-        "prebuild": "yarn clean",
+        
         "build": "parcel build src/index.html --public-url ./ --no-source-maps  --no-optimize",
         "clean": "rimraf ./dist && rimraf .parcel-cache",
         "fix": "eslint src/ --fix",
