@@ -36,7 +36,7 @@
     },
     "resolutions": {
         "@babel/preset-env": "7.13.8",
-        "cids": "1.1.5"
+        "cids": "1.0.2"
     },
     "browserslist": [
         "last 2 Chrome versions"
