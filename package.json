@@ -30,12 +30,10 @@
         "@babel/preset-react": "^7.12.13",
         "babel-plugin-react-html-attrs": "^3.0.5",
         "eslint": "^7.14.0",
-        "gh-pages": "^3.1.0",
         "parcel": "^2.0.0-beta.1",
         "rimraf": "^3.0.2"
     },
     "resolutions": {
-        "@babel/preset-env": "7.13.8",
         "cids": "1.1.6"
     },
     "browserslist": [
@@ -45,7 +43,7 @@
         "deploy:testnet": "yarn build",
         "deploy": "REACT_APP_ENV=\"prod\" yarn build && cp -a static/* dist",
         "prebuild": "yarn clean",
-        "build": "parcel build src/index.html --public-url ./ --no-source-maps",
+        "build": "parcel build src/index.html --public-url ./ --no-source-maps  --no-optimize",
         "clean": "rimraf ./dist && rimraf .parcel-cache",
         "fix": "eslint src/ --fix",
         "start": "env-cmd -f ./.env parcel src/index.html --open"
