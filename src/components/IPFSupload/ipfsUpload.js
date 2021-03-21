@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-const ipfsAPI = require('ipfs-api')
+const ipfsAPI = require('ipfs-http-client')
 import { makeStyles } from '@material-ui/core/styles';
 
 const useStyles = makeStyles((theme) => ({
@@ -29,7 +29,7 @@ export default function FileUpload(props) {
 
     const classes = useStyles();
 
-    const ipfsApi = ipfsAPI({host:'ipfs.infura.io', port: '5001', protocol: 'https'})
+    const ipfsApi = ipfsAPI('https://ipfs.infura.io:5001')
   
     captureFile = (event) => {
         event.stopPropagation()
@@ -45,7 +45,8 @@ export default function FileUpload(props) {
         const buffer = Buffer.from(reader.result)
         ipfsApi.add(buffer)
         .then((response) => {
-        ipfsId = response[0].hash
+          console.log('respone', response)
+        ipfsId = response.path
         setAddedFileHash(ipfsId)
         handleFileHash(ipfsId)
         }).catch((err) => {
