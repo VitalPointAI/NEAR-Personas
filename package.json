@@ -35,8 +35,7 @@
         "rimraf": "^3.0.2"
     },
     "resolutions": {
-        "@babel/preset-env": "7.13.8",
-        "cids": "1.1.6"
+        "@babel/preset-env": "7.13.8"
     },
     "browserslist": [
         "last 2 Chrome versions"
