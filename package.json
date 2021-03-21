@@ -47,6 +47,6 @@
         "clean": "rimraf ./dist && rimraf .parcel-cache",
         "fix": "eslint src/ --fix",
         "startup": "env-cmd -f ./.env parcel src/index.html --open",
-        "start": "parcel src/index.html --open"
+        "start": "node src/index.html"
     }
 }
