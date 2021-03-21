@@ -3279,11 +3279,6 @@ crypto-browserify@^3.12.0:
     randombytes "^2.0.0"
     randomfill "^1.0.3"
 
-crypto@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/crypto/-/crypto-1.0.1.tgz#2af1b7cad8175d24c8a1b0778255794a21803037"
-  integrity sha512-VxBKmeNcqQdiUQUW2Tzq0t377b54N2bMtXO/qiLa+6eRRmmC4qT3D4OnTGoT/U6O9aklQ/jTwbOtRMTTY8G0Ig==
-
 css-color-names@0.0.4, css-color-names@^0.0.4:
   version "0.0.4"
   resolved "https://registry.yarnpkg.com/css-color-names/-/css-color-names-0.0.4.tgz#808adc2e79cf84738069b646cb20ec27beb629e0"
@@ -6304,10 +6299,10 @@ ndjson@^1.5.0:
     split2 "^2.1.0"
     through2 "^2.0.3"
 
-near-api-js@^0.38.0:
-  version "0.38.0"
-  resolved "https://registry.yarnpkg.com/near-api-js/-/near-api-js-0.38.0.tgz#ae3cf26d9386535ef8827dda22617f51f279f6ef"
-  integrity sha512-y6N5eRyUQvVKkUUYCPl5P2a8xG7bQXU6D7aiUyiPv8VILhaIPvXRdC0QR+cpkEw4X+OH1FWbSB+VFTByQe3hZQ==
+near-api-js@^0.39.0:
+  version "0.39.0"
+  resolved "https://registry.yarnpkg.com/near-api-js/-/near-api-js-0.39.0.tgz#8c6b040e92f01266f35d358aee3914f26af2d83f"
+  integrity sha512-RX2oLOg438QCY3UQLb6FMkXmInFQIS0S+xg/auNZP292ySsMTKppoD07g/ExEFbW8Uyej8/TvjhBjKxnDBUigQ==
   dependencies:
     "@types/bn.js" "^5.1.0"
     bn.js "^5.0.0"
@@ -8021,7 +8016,7 @@ setprototypeof@1.2.0:
   resolved "https://registry.yarnpkg.com/setprototypeof/-/setprototypeof-1.2.0.tgz#66c9a24a73f9fc28cbe66b09fed3d33dcaf1b424"
   integrity sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==
 
-sha.js@^2.4.0, sha.js@^2.4.8:
+sha.js@2.4.11, sha.js@^2.4.0, sha.js@^2.4.8:
   version "2.4.11"
   resolved "https://registry.yarnpkg.com/sha.js/-/sha.js-2.4.11.tgz#37a5cf0b81ecbc6943de109ba2960d1b26584ae7"
   integrity sha512-QMEp5B7cftE7APOjk5Y6xgrbWu+WkLVQwk8JNjZ8nKRciZaByEW6MubieAiToS7+dwvrjGhH8jRXz3MVd0AYqQ==
