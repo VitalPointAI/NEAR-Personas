@@ -23,7 +23,6 @@ target
 /dist
 /contract/build
 /contract/node_modules
-package-lock.json
 
 # misc
 .DS_Store
