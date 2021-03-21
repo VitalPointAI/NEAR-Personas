@@ -35,7 +35,7 @@
     },
     "resolutions": {
         "cids": "1.1.6",
-        "multihashing-async": "2.1.2"
+        "multicodec": "3.0.1"
     },
     "browserslist": [
         "last 2 Chrome versions"
