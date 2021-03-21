@@ -36,8 +36,7 @@
     },
     "resolutions": {
         "@babel/preset-env": "7.13.8",
-        "ipld-dag-cbor": "VitalPointAI/js-ipld-dag-cbor#ceramiccompat",
-        "multicodec": "2.0.0"
+        "cids": "1.1.6"
     },
     "browserslist": [
         "last 2 Chrome versions"
