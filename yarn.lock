@@ -5025,9 +5025,9 @@ ipld-block@^0.11.0:
   dependencies:
     cids "^1.0.0"
 
-ipld-dag-cbor@VitalPointAI/js-ipld-dag-cbor#ceramiccompat, ipld-dag-cbor@^0.17.0:
+ipld-dag-cbor@^0.17.0, "ipld-dag-cbor@https://github.com/VitalPointAI/js-ipld-dag-cbor#ceramiccompat":
   version "0.18.0"
-  resolved "https://codeload.github.com/VitalPointAI/js-ipld-dag-cbor/tar.gz/605775043932a182fc10b51309b338dfb86ea597"
+  resolved "https://github.com/VitalPointAI/js-ipld-dag-cbor#605775043932a182fc10b51309b338dfb86ea597"
   dependencies:
     borc "^2.1.2"
     cids "^1.0.0"
@@ -7298,9 +7298,9 @@ querystring@^0.2.0:
   integrity sha512-wkvS7mL/JMugcup3/rMitHmd9ecIGd2lhFhK9N3UUQ450h66d1r3Y9nvXzQAW1Lq+wyx61k/1pfKS5KuKiyEbg==
 
 queue-microtask@^1.2.2:
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/queue-microtask/-/queue-microtask-1.2.2.tgz#abf64491e6ecf0f38a6502403d4cda04f372dfd3"
-  integrity sha512-dB15eXv3p2jDlbOiNLyMabYg1/sXvppd8DP2J3EOCQ0AkuSXCW2tP7mnVouVLJKgUMY6yP0kcQDVpLCN13h4Xg==
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/queue-microtask/-/queue-microtask-1.2.3.tgz#4929228bbc724dfac43e0efb058caf7b6cfb6243"
+  integrity sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==
 
 quill-delta@^3.6.2:
   version "3.6.3"
