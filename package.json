@@ -5,12 +5,12 @@
     "author": "Aaron Luhning",
     "license": "ISC",
     "dependencies": {
-        "3id-did-provider": "^0.5.1",
         "@ceramicnetwork/http-client": "^0.9.6",
         "@ceramicstudio/idx": "^0.8.0",
         "@ceramicstudio/idx-tools": "^0.8.0",
         "@material-ui/core": "^4.11.3",
         "@material-ui/icons": "^4.11.2",
+        "3id-did-provider": "^0.5.1",
         "animejs": "^3.2.1",
         "copy-to-clipboard": "^3.3.1",
         "env-cmd": "^10.1.0",
@@ -45,15 +45,13 @@
         "last 2 Chrome versions"
     ],
     "scripts": {
-        "deploy:testnet": "yarn build",
-        "deploy": "REACT_APP_ENV=\"prod\" yarn build && cp -a static/* dist",
-        "prebuild": "yarn cache clean && yarn clean",
-        "build": "parcel build src/index.html --public-url ./ --no-source-maps  --no-optimize",
+        "deploy:testnet": "npm run build && gh-pages -d dist",
+        "preinstall": "npx npm-force-resolutions",
+        "deploy": "REACT_APP_ENV=\"prod\" yarn build && cp -a static/* dist && gh-pages -d dist",
+        "prebuild": "npm run clean",
+        "build": "npx npm-force-resolutions && parcel build src/index.html --public-url ./ --no-source-maps",
         "clean": "rimraf ./dist && rimraf .parcel-cache",
         "fix": "eslint src/ --fix",
-        "startup1": "env-cmd -f ./.env parcel src/index.html --open",
-        "startup2": "node dist/index.html",
-        "startup": "node index.js",
-        "start": "parcel src/index.html"
+        "start": "env-cmd -f ./.env parcel src/index.html --open"
     }
 }

@@ -13,7 +13,7 @@
   publish = "dist/"
 
   # Default build command.
-  command = "yarn build"
+  command = "npm run build"
 
   # Directory with the serverless functions, including background functions,
   # to deploy to AWS. This is relative to the base directory if one has been set, 
@@ -24,7 +24,7 @@
 # deploy contexts will inherit these settings.
 [context.production]
   publish = "dist/"
-  command = "yarn build"
+  command = "npm run build"
  # environment = { ACCESS_TOKEN = "super secret", NODE_VERSION = "14.15.3" }
 
 # Deploy Preview context: all deploys generated from a pull/merge request will
