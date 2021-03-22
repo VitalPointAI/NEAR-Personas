@@ -1,5 +1,12 @@
 {
     "search.exclude": {
         "**/node_modules": false
-    }
+    },
+    "appService.zipIgnorePattern": [
+        "node_modules{,/**}",
+        ".vscode{,/**}",
+        ".env{,/**}"
+    ],
+    "appService.defaultWebAppToDeploy": "/subscriptions/8c99d101-aa4c-441d-86f6-2dad028391cb/resourceGroups/VitalPointAI/providers/Microsoft.Web/sites/nearpersonas",
+    "appService.deploySubpath": "."
 }
