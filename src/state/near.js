@@ -372,8 +372,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 
     // check localLinks, see if they're still valid
 
-    let state = getState()
-    console.log('linkstate', state)
+   
       
     let allAccounts = await ceramic.downloadKeysSecret(curUserIdx, 'accountsKeys')
     
@@ -408,7 +407,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     }
     set(ACCOUNT_LINKS, localLinks)
     await ceramic.storeKeysSecret(curUserIdx, localLinks, 'accountsKeys')
-    
+
     const claimed = localLinks.filter(({claimed}) => !!claimed)
     const links = localLinks.filter(({claimed}) => !claimed)
 
