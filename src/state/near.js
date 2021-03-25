@@ -372,22 +372,21 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 
     // check localLinks, see if they're still valid
 
-   
+    if(wallet.signedIn){
       
-    let allAccounts = await ceramic.downloadKeysSecret(curUserIdx, 'accountsKeys')
+        let allAccounts = await ceramic.downloadKeysSecret(curUserIdx, 'accountsKeys')
+        
+        const storageLinks = get(ACCOUNT_LINKS, [])
     
-    const storageLinks = get(ACCOUNT_LINKS, [])
- 
-    if(allAccounts.length != storageLinks.length){
-        if(allAccounts.length < storageLinks.length){
-            await ceramic.storeKeysSecret(curUserIdx, storageLinks, 'accountsKeys')
-        }
-        if(allAccounts.length > storageLinks.length){
-            set(ACCOUNT_LINKS, allAccounts)
+        if(allAccounts.length != storageLinks.length){
+            if(allAccounts.length < storageLinks.length){
+                await ceramic.storeKeysSecret(curUserIdx, storageLinks, 'accountsKeys')
+            }
+            if(allAccounts.length > storageLinks.length){
+                set(ACCOUNT_LINKS, allAccounts)
+            }
         }
     }
-
-    
 
     const localLinks = get(ACCOUNT_LINKS, []).sort((a) => a.claimed ? 1 : -1)
     for (let i = 0; i < localLinks.length; i++) {
@@ -406,10 +405,14 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         }
     }
     set(ACCOUNT_LINKS, localLinks)
-    await ceramic.storeKeysSecret(curUserIdx, localLinks, 'accountsKeys')
+    
+    if(wallet.signedIn){
+        await ceramic.storeKeysSecret(curUserIdx, localLinks, 'accountsKeys')
+    }
 
     const claimed = localLinks.filter(({claimed}) => !!claimed)
     const links = localLinks.filter(({claimed}) => !claimed)
+    
 
     update('', { near, wallet, links, claimed, currentAliases, curUserIdx, curInfo, didRegistryContract, appIdx, appAliases, did, accountId, finished })
 }
