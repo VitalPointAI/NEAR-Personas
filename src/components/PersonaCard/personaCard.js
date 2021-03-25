@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { appStore, onAppMount } from '../../state/app';
+import { get, set, del } from '../../utils/storage'
 import { ceramic } from '../../utils/ceramic'
 import { IDX } from '@ceramicstudio/idx'
 import EditPersonaForm from '../EditPersona/editPersona'
@@ -16,7 +17,13 @@ import Typography from '@material-ui/core/Typography'
 import Link from '@material-ui/core/Link'
 import { red } from '@material-ui/core/colors'
 import Button from '@material-ui/core/Button'
-import { CardHeader } from '@material-ui/core'
+import { CardHeader, LinearProgress } from '@material-ui/core'
+
+import { config } from '../../state/config'
+
+export const {
+    ACCOUNT_LINKS
+} = config
 
 const useStyles = makeStyles((theme) => ({
     pos: {
@@ -44,6 +51,7 @@ export default function PersonaCard(props) {
      const [isUpdated, setIsUpdated] = useState(false)
      const [anchorEl, setAnchorEl] = useState(null);
      const [did, setDid] = useState()
+     const [finished, setFinished] = useState()
 
     const classes = useStyles();
 
@@ -61,93 +69,125 @@ export default function PersonaCard(props) {
               if(owner == state.accountId){
                 setDisplay(true)
               }
-
-              let did
+              setFinished(false)
+              
               let currentAliases = {}
              
               let existingDid = await state.didRegistryContract.hasDID({accountId: accountId})
+          
               if(existingDid){
-              try {
-                did = await state.didRegistryContract.getDID({accountId: accountId})
-                setDid(did)
-              } catch (err) {
-                console.log('no did', err)
-              }
+                let thisDid
+                try {
+                  thisDid = await state.didRegistryContract.getDID({accountId: accountId})
            
-      
-              let demSeed = await ceramic.downloadSecret(state.appIdx, 'SeedsJWE', did)
-          
-              let thisAccount = new nearAPI.Account(state.near.connection, accountId)
-              let demClient = await ceramic.getCeramic(thisAccount, demSeed)
-
-              let definitions = await state.didRegistryContract.getDefinitions()
-             
-              let o = 0
-              let profileDef
-              while(o < definitions.length) {
-                let key = definitions[o].split(':')
-                if(key[0] == accountId && key[1] == 'profile'){
-                  profileDef = key[2]
-                  break
+                  setDid(thisDid)
+                } catch (err) {
+                  console.log('no did', err)
                 }
-                o++
-              }
-           
-              try {
-                  let allAliases = await state.didRegistryContract.getAliases()
-                
-              
-                  //reconstruct aliases, get profile alias, and set IDXs
-                  let i = 0
-                  let profileAlias
-                  while (i < allAliases.length) {
-                      let key = allAliases[i].split(':')
-                      let alias = {[key[0]]: key[1]}
-                      if (alias.profile == profileDef) {
-                        currentAliases = {...currentAliases, ...alias}
-                        break
-                      }
-                      i++
-                  }
-          
-              } catch (err) {
-                  console.log('error retrieving aliases', err)
-              }
-              
-              let userIdx = new IDX({ ceramic: demClient, aliases: currentAliases})
             
-              setCurUserIdx(userIdx)
-            
-              let curUserIndex = await userIdx.getIndex()
              
-                 
+                
+                let demSeed = await ceramic.downloadSecret(state.appIdx, 'SeedsJWE', thisDid)
+                if(!demSeed) {
+                  demSeed = await ceramic.getLocalSeed(accountId)
+                  await ceramic.storeSeedSecret(state.appIdx, demSeed, 'SeedsJWE', thisDid)
+                }
+               
+                let thisAccount = new nearAPI.Account(state.near.connection, accountId)
+                let demClient = await ceramic.getCeramic(thisAccount, demSeed)
+
+                let definitions = await state.didRegistryContract.getDefinitions()
+              
+                let o = 0
+                let profileDef
+                while(o < definitions.length) {
+                  let key = definitions[o].split(':')
+                  if(key[0] == accountId && key[1] == 'profile'){
+                    profileDef = key[2]
+                    break
+                  }
+                  o++
+                }
+
+                let k = 0
+                let accountKeysDef
+                while(k < definitions.length) {
+                  let key = definitions[k].split(':')
+                  if(key[0] == accountId && key[1] == 'accountsKeys'){
+                    accountKeysDef = key[2]
+                    break
+                  }
+                  k++
+                }
+            
+                try {
+                    let allAliases = await state.didRegistryContract.getAliases()
+                
+                    //reconstruct aliases, get profile and accountKeys aliases, and set IDXs
+                    let i = 0
+                    let profileAlias
+                    while (i < allAliases.length) {
+                        let key = allAliases[i].split(':')
+                        let alias = {[key[0]]: key[1]}
+                      
+                        if (alias.profile == profileDef) {
+                          currentAliases = {...currentAliases, ...alias}
+                        }
+                       
+                        if (alias.accountsKeys == accountKeysDef) {
+                          currentAliases = {...currentAliases, ...alias}
+                        }
+                        
+                          i++
+                    }
+            
+                } catch (err) {
+                    console.log('error retrieving aliases', err)
+                }
+                
+                let userIdx = new IDX({ ceramic: demClient, aliases: currentAliases})
+                setCurUserIdx(userIdx)
+              
+                // synch local storage Account Links to what is stored on Ceramic for this user
+                let allAccounts = await ceramic.downloadKeysSecret(userIdx, 'accountsKeys')
+
+                const storageLinks = get(ACCOUNT_LINKS, [])
+
+                if(allAccounts.length != storageLinks.length){
+                    if(allAccounts.length < storageLinks.length){
+                      await ceramic.storeKeysSecret(userIdx, storageLinks, 'accountsKeys', userIdx.id)
+                    }
+                    if(allAccounts.length > storageLinks.length){
+                        set(ACCOUNT_LINKS, allAccounts)
+                    }
+                }
 
                 let result = await userIdx.get('profile', userIdx.id)
-               
-            
-              let i = 0
-              while (i < state.claimed.length) {
-                if(state.claimed[i].accountId == accountId){
-                  let claimed = state.claimed[i].claimed
-                  setClaimed(claimed)
-                  break
+              
+                let i = 0
+                while (i < state.claimed.length) {
+                  if(state.claimed[i].accountId == accountId){
+                    let claimed = state.claimed[i].claimed
+                    setClaimed(claimed)
+                    break
+                  }
+                  i++
                 }
-                i++
-              }
 
-              let isUpdated
-              let dataObj = {
-                  accountId: accountId,
-                  did: did,
-                  date: result ? result.date : '',
-                  avatar: result ? result.avatar : '',
-                  shortBio: result ? result.shortBio : '',
-                  name: result ? result.name : '',
-              }
-              setAvatar(dataObj.avatar)
+                let isUpdated
+                let dataObj = {
+                    accountId: accountId,
+                    did: did,
+                    date: result ? result.date : '',
+                    avatar: result ? result.avatar : '',
+                    shortBio: result ? result.shortBio : '',
+                    name: result ? result.name : '',
+                }
+                setAvatar(dataObj.avatar)
               }
   
               return dataObj
+            
             }
          
       
@@ -155,6 +195,7 @@ export default function PersonaCard(props) {
       fetchData()
           .then((res) => {
             setDataObj(res)
+            setFinished(true)
           })
       
   }, [state.appIdx, avatar, isUpdated]
@@ -193,13 +234,12 @@ export default function PersonaCard(props) {
                 </Typography>
               </CardContent>
       
-
-            <CardActions>
-            
+            {finished ? ( <CardActions>
+          
               {!claimed ? (
-                <Link color="primary" href={link}>
-                Claim
-              </Link>
+                  <Link color="primary" href={link}>
+                    Claim
+                  </Link>
               ) : null }
 
               {claimed ? (
@@ -207,7 +247,7 @@ export default function PersonaCard(props) {
                     Edit Persona
                 </Button>
               ) : null }
-            
+           
 
 
               {editPersonaClicked ? <EditPersonaForm
@@ -219,7 +259,7 @@ export default function PersonaCard(props) {
                 accountId={accountId}
                 /> : null }
 
-            </CardActions>
+            </CardActions> ) : <LinearProgress />}
           </Card>
           ) : null }
         </>

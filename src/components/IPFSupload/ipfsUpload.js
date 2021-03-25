@@ -36,7 +36,7 @@ export default function FileUpload(props) {
         event.preventDefault()
         const file = event.target.files[0]
         let reader = new window.FileReader()
-        reader.onloadend = () => this.saveToIpfs(reader)
+        reader.onloadend = () => saveToIpfs(reader)
         reader.readAsArrayBuffer(file)
     }
 

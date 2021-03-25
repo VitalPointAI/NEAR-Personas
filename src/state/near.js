@@ -3,9 +3,12 @@ import { get, set, del } from '../utils/storage'
 import { ceramic } from '../utils/ceramic'
 import { profileSchema } from '../schemas/profile'
 import { personaSeedsSchema } from '../schemas/personaSeeds'
+import { accountKeysSchema } from '../schemas/accountKeys'
 import { IDX } from '@ceramicstudio/idx'
 
 import { config } from './config'
+
+const bip39 = require('bip39')
 
 export const {
     FUNDING_DATA, FUNDING_DATA_BACKUP, ACCOUNT_LINKS, GAS, SEED_PHRASE_LOCAL_COPY,
@@ -70,6 +73,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 
     // resume wallet / contract flow
     const wallet = new nearAPI.WalletAccount(near);
+
     wallet.signIn = () => {
         wallet.requestSignIn(contractName, 'Blah Blah')
     }
@@ -100,12 +104,27 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         }
         const keyPair = KeyPair.fromRandom('ed25519')
 
+        let state = getState()
+      
+        let allAccounts = await ceramic.downloadKeysSecret(state.curUserIdx, 'accountsKeys')
+        
+        const storageLinks = get(ACCOUNT_LINKS, [])
+     
+        if(allAccounts.length != storageLinks.length){
+            if(allAccounts.length < storageLinks.length){
+                await ceramic.storeKeysSecret(state.curUserIdx, storageLinks, 'accountsKeys')
+            }
+            if(allAccounts.length > storageLinks.length){
+                set(ACCOUNT_LINKS, allAccounts)
+            }
+        }
+
         const links = get(ACCOUNT_LINKS, [])
         links.push({ key: keyPair.secretKey, accountId, recipientName, owner, keyStored: Date.now() })
+        await ceramic.storeKeysSecret(state.curUserIdx, links, 'accountsKeys')
         set(ACCOUNT_LINKS, links)
 
         // set(FUNDING_DATA, { key: keyPair.secretKey, accountId, recipientName, amount, funder_account_id: wallet.getAccountId() })
-       
        
         await contract.create_account({ new_account_id: accountId, new_public_key: keyPair.publicKey.toString() }, GAS, parseNearAmount(amount))
     }
@@ -114,15 +133,8 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
    
     const accountId = wallet.account().accountId
     
-
-//     let newKeyPair = KeyPair.fromString(process.env.DID_CONTRACT)
-//     let signer = await InMemorySigner.fromKeyPair(networkId, accountId, newKeyPair)
-//     const nextNear = await nearAPI.connect({
-//         networkId, nodeUrl, walletUrl, deps: { keyStore: signer.keyStore },
-//     });
-//    // const near = await nearApiJs.connect(Object.assign({deps: { keyStore: signer.keyStore }}, getConfig(process.env.NODE_ENV)))
     const account = new nearAPI.Account(near.connection, accountId);
-  
+   
     const didRegistryContract = new nearAPI.Contract(account, didRegistryContractName, {
         viewMethods: [
             'getDID',
@@ -150,7 +162,6 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     let appSeed = Buffer.from(process.env.APP_SEED.slice(0, 32))
     let appClient = await ceramic.getAppCeramic(appSeed)
     
-
     let appDID = await ceramic.associateAppDID('vitalpointai.testnet', didRegistryContract, appClient)
    
     // create app vault and definition if it doesn't exist
@@ -178,11 +189,9 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 
     // Set Current User Ceramic Client
     
-   
         let did
         let personaSeed
-        let userClient
-        let demDaoIdx
+        let currentUserCeramicClient
         let currentAliases = {}
         let curUserIdx
         let curInfo
@@ -194,39 +203,190 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
                 did = await didRegistryContract.getDID({
                     accountId: account.accountId
                 })
+        
                 personaSeed = await ceramic.downloadSecret(appIdx, 'SeedsJWE', did)
-               
+            
                 if(personaSeed) {
-                    userClient = await ceramic.getCeramic(account, personaSeed)
-                    const currentUserCeramicClient = await ceramic.getCeramic(account, personaSeed)
+                    currentUserCeramicClient = await ceramic.getCeramic(account, personaSeed)
                     await ceramic.schemaSetup(account.accountId, 'profile', 'user profile data', didRegistryContract, currentUserCeramicClient, profileSchema)
-
+                    await ceramic.schemaSetup(account.accountId, 'accountsKeys', 'user account info', didRegistryContract, currentUserCeramicClient, accountKeysSchema)
                     
+                    // Retrieve all the definitions so we can cycle through them and find the right profile and account keys definitions for the current 
+                    // logged in user.  We have create unique definitions for each user so we can create custom profiles in the future by user.
+                    let definitions = await didRegistryContract.getDefinitions()
+             
+                    let o = 0
+                    let profileDef
+                    while(o < definitions.length) {
+                      let key = definitions[o].split(':')
+                      if(key[0] == accountId && key[1] == 'profile'){
+                        profileDef = key[2]
+                        break
+                      }
+                      o++
+                    }
+
+                    let k = 0
+                    let accountKeysDef
+                    while(k < definitions.length) {
+                      let key = definitions[k].split(':')
+                      if(key[0] == accountId && key[1] == 'accountsKeys'){
+                        accountKeysDef = key[2]
+                        break
+                      }
+                      k++
+                    }
+
+                    //reconstruct aliases, get profile and accountKeys aliases, and set IDXs
                     try {
                         let allAliases = await didRegistryContract.getAliases()
-                    
-                        //reconstruct aliases and set IDXs
+                      
                         let i = 0
-                        
                         while (i < allAliases.length) {
                             let key = allAliases[i].split(':')
                             let alias = {[key[0]]: key[1]}
-                            currentAliases = {...currentAliases, ...alias}
-                            i++
+                            if (alias.profile == profileDef) {
+                              currentAliases = {...currentAliases, ...alias}
+                            }
+                            if (alias.accountsKeys == accountKeysDef) {
+                              currentAliases = {...currentAliases, ...alias}
+                            }
+                              i++
                         }
-                       
-                        
+                
                     } catch (err) {
                         console.log('error retrieving aliases', err)
                     }
 
                     curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
                                      
-                    // Set Current User's Avatar
+                    // Get Current User's Profile
                     curInfo = await curUserIdx.get('profile')
-                  
+                 
                 }
-            } 
+            }
+            if(!existingDid){
+              
+                const account = new nearAPI.Account(near.connection, accountId);
+   
+                const mnemonic = bip39.generateMnemonic()
+                let seed = await bip39.mnemonicToSeed(mnemonic)
+              
+                const ceramicSeed = Buffer.from(seed.slice(0, 32))
+                localStorage.setItem('nearprofile:seed:'+accountId, ceramicSeed.toString('base64'))
+                    
+                const didContract = new nearAPI.Contract(account, didRegistryContractName, {
+                    viewMethods: [
+                        'getDID',
+                        'getSchemas',
+                        'findSchema',
+                        'getDefinitions',
+                        'findDefinition',
+                        'findAlias',
+                        'getAliases',
+                        'hasDID'
+                    ],
+                    // Change methods can modify the state. But you don't receive the returned value when called.
+                    changeMethods: [
+                        'putDID',
+                        'initialize',
+                        'addSchema',
+                        'addDefinition',
+                        'addAlias'
+                    ],
+                })
+
+                //Set App Ceramic Client
+                let appSeed = Buffer.from(process.env.APP_SEED.slice(0, 32))
+                let appClient = await ceramic.getAppCeramic(appSeed)
+
+
+                let appAliases = {}
+                try {
+                    let allAliases = await didContract.getAliases()
+                
+                    //reconstruct aliases and set IDXs
+                    let i = 0
+                    
+                    while (i < allAliases.length) {
+                        let key = allAliases[i].split(':')
+                        let alias = {[key[0]]: key[1]}
+                        appAliases = {...appAliases, ...alias}
+                        i++
+                    }
+                    
+                } catch (err) {
+                    console.log('error retrieving aliases', err)
+                }
+
+                let appIdx = new IDX({ ceramic: appClient, aliases: appAliases})
+                
+               
+                // Set Current User Ceramic Client
+                currentUserCeramicClient = await ceramic.getCeramic(account, ceramicSeed)
+            
+            
+                let upload = await ceramic.storeSeedSecret(appIdx, ceramicSeed, 'SeedsJWE', currentUserCeramicClient.did.id)
+                
+
+                // Associate current user NEAR account with 3ID and store in contract and cache in local storage
+                await ceramic.associateDID(accountId, didContract, currentUserCeramicClient)
+                await ceramic.schemaSetup(accountId, 'profile', 'user profile data', didContract, currentUserCeramicClient, profileSchema)
+                await ceramic.schemaSetup(accountId, 'accountsKeys', 'user account info', didContract, currentUserCeramicClient, accountKeysSchema)
+                
+                // Retrieve all the definitions so we can cycle through them and find the right profile and account keys definitions for the current 
+                    // logged in user.  We have create unique definitions for each user so we can create custom profiles in the future by user.
+                    let definitions = await didContract.getDefinitions()
+           
+                    let o = 0
+                    let profileDef
+                    while(o < definitions.length) {
+                      let key = definitions[o].split(':')
+                      if(key[0] == accountId && key[1] == 'profile'){
+                        profileDef = key[2]
+                        break
+                      }
+                      o++
+                    }
+
+                    let k = 0
+                    let accountKeysDef
+                    while(k < definitions.length) {
+                      let key = definitions[k].split(':')
+                      if(key[0] == accountId && key[1] == 'accountsKeys'){
+                        accountKeysDef = key[2]
+                        break
+                      }
+                      k++
+                    }
+
+                    //reconstruct aliases, get profile and accountKeys aliases, and set IDXs
+                    try {
+                        let allAliases = await didContract.getAliases()
+                      
+                        let i = 0
+                        while (i < allAliases.length) {
+                            let key = allAliases[i].split(':')
+                            let alias = {[key[0]]: key[1]}
+                            if (alias.profile == profileDef) {
+                              currentAliases = {...currentAliases, ...alias}
+                            }
+                            if (alias.accountsKeys == accountKeysDef) {
+                              currentAliases = {...currentAliases, ...alias}
+                            }
+                              i++
+                        }
+                
+                    } catch (err) {
+                        console.log('error retrieving aliases', err)
+                    }
+
+                curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
+                                 
+                // Set Current User's Avatar
+                curInfo = await curUserIdx.get('profile')
+                
+            }
         }
     finished = true
 
@@ -268,9 +428,8 @@ export const unclaimLink = (keyToFind) => async ({ update }) => {
 
 export const keyRotation = () => async ({ update, getState, dispatch }) => {
     const state = getState()
-  
+ 
     const { key, accountId, publicKey, seedPhrase } = state.accountData
-    //const { appIdx, appSeed, didRegistryContract } = state
 
     const keyPair = KeyPair.fromString(key)
     const signer = await InMemorySigner.fromKeyPair(networkId, accountId, keyPair)
@@ -344,12 +503,13 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
          // Set Current User Ceramic Client
         const currentUserCeramicClient = await ceramic.getCeramic(account, ceramicSeed)
     
-    
-        let upload = await ceramic.storeSeedSecret(appIdx, ceramicSeed, 'SeedsJWE', currentUserCeramicClient.did.id)
+        await ceramic.storeSeedSecret(appIdx, ceramicSeed, 'SeedsJWE', currentUserCeramicClient.did.id)
 
         // Associate current user NEAR account with 3ID and store in contract and cache in local storage
         await ceramic.associateDID(accountId, didContract, currentUserCeramicClient)
         await ceramic.schemaSetup(accountId, 'profile', 'user profile data', didContract, currentUserCeramicClient, profileSchema)
+        await ceramic.schemaSetup(accountId, 'accountsKeys', 'user account info', didContract, currentUserCeramicClient, accountKeysSchema)
+                 
     }
     
     const actions = [

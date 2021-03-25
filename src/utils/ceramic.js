@@ -49,7 +49,25 @@ class Ceramic {
   
     await idx.set(key, record)
   }
+
+  async storeKeysSecret(idx, payload, key, did) {
+
+    let record = await idx.get(key)
+    
+    if(!record){
+      record = { seeds: [] }
+    }
+   
+    let access = [idx._ceramic.did.id]
+    if(did) access.push(did)
+    const jwe = await idx._ceramic.did.createDagJWE(payload, access)
   
+    record = { seeds: [jwe] }
+  
+    await idx.set(key, record)
+  }
+  
+
   async downloadSecret(idx, key, did) {
   
     let records = await idx.get(key)
@@ -67,8 +85,22 @@ class Ceramic {
     return false
   }
 
+  async downloadKeysSecret(idx, key) {
+    let records = await idx.get(key)
+    if(records){
+      return await idx._ceramic.did.decryptDagJWE(records.seeds[0])
+    }
+    return []
+  }
+
   async getSeed(account) {
     const secretKey = localStorage.getItem('nearprofile:seed:'+account.accountId)
+    let seed = Buffer.from(secretKey.slice(0, 32))
+    return seed
+  }
+
+  async getLocalSeed(accountId) {
+    const secretKey = localStorage.getItem('nearprofile:seed:'+accountId)
     let seed = Buffer.from(secretKey.slice(0, 32))
     return seed
   }

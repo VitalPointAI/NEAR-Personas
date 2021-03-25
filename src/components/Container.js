@@ -4,6 +4,7 @@ import SignIn from '../components/SignIn/signIn'
 import LogoutButton from '../components/LogoutButton/logoutButton'
 import Persona from '../components/Persona/persona'
 import AddPersonaForm from '../components/AddPersona/addPersona'
+import EditPersonaForm from '../components/EditPersona/editPersona'
 
 // Material UI
 import { makeStyles } from '@material-ui/core/styles'
@@ -47,10 +48,10 @@ export const Container = ({ children, state }) => {
 
     const [anchorEl, setAnchorEl] = useState(null);
     const [addPersonaClicked, setAddPersonaClicked] = useState(false)
-    const [editPersonaClicked, setEditPersonaClicked] = useState(false)
+   
 
     const {
-        app, wallet, links, claimed, accountId
+        app, wallet, links, claimed, accountId, curInfo
     } = state
 
     useEffect(
@@ -85,6 +86,7 @@ export const Container = ({ children, state }) => {
         handleClose()
     }
 
+   
     return (
         <>
         <div class="background"></div>
@@ -114,7 +116,7 @@ export const Container = ({ children, state }) => {
         </AppBar>
         <Grid container spacing={1}>
             <Grid item xs={12} sm={12} md={12} lg={12} xl={12} >
-               {wallet && wallet.signedIn ? <Persona state={state} accountId={wallet.getAccountId()} balance={wallet.balance} /> : null}
+               {wallet && wallet.signedIn ? <Persona state={state} accountId={wallet.getAccountId()} balance={wallet.balance} avatar={curInfo.avatar}/> : null}
             </Grid>
         </Grid>
 
