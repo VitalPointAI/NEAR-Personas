@@ -49,27 +49,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         return true
     }
 
-    // check localLinks, see if they're still valid
-    const localLinks = get(ACCOUNT_LINKS, []).sort((a) => a.claimed ? 1 : -1)
-    for (let i = 0; i < localLinks.length; i++) {
-        const { key, accountId, keyStored = 0, claimed } = localLinks[i]
-        const exists = await isAccountTaken(accountId)
-        if (!exists) {
-            localLinks.splice(i, 1)
-            continue
-        }
-        if (!!claimed || Date.now() - keyStored < 5000) {
-            continue
-        }
-        const keyExists = await hasKey(key, accountId, near)
-        if (!keyExists) {
-            localLinks[i].claimed = true
-        }
-    }
-    set(ACCOUNT_LINKS, localLinks)
-
-    const claimed = localLinks.filter(({claimed}) => !!claimed)
-    const links = localLinks.filter(({claimed}) => !claimed)
+    
 
     // resume wallet / contract flow
     const wallet = new nearAPI.WalletAccount(near);
@@ -389,6 +369,48 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
             }
         }
     finished = true
+
+    // check localLinks, see if they're still valid
+
+    let state = getState()
+    console.log('linkstate', state)
+      
+    let allAccounts = await ceramic.downloadKeysSecret(curUserIdx, 'accountsKeys')
+    
+    const storageLinks = get(ACCOUNT_LINKS, [])
+ 
+    if(allAccounts.length != storageLinks.length){
+        if(allAccounts.length < storageLinks.length){
+            await ceramic.storeKeysSecret(curUserIdx, storageLinks, 'accountsKeys')
+        }
+        if(allAccounts.length > storageLinks.length){
+            set(ACCOUNT_LINKS, allAccounts)
+        }
+    }
+
+    
+
+    const localLinks = get(ACCOUNT_LINKS, []).sort((a) => a.claimed ? 1 : -1)
+    for (let i = 0; i < localLinks.length; i++) {
+        const { key, accountId, keyStored = 0, claimed } = localLinks[i]
+        const exists = await isAccountTaken(accountId)
+        if (!exists) {
+            localLinks.splice(i, 1)
+            continue
+        }
+        if (!!claimed || Date.now() - keyStored < 5000) {
+            continue
+        }
+        const keyExists = await hasKey(key, accountId, near)
+        if (!keyExists) {
+            localLinks[i].claimed = true
+        }
+    }
+    set(ACCOUNT_LINKS, localLinks)
+    await ceramic.storeKeysSecret(curUserIdx, localLinks, 'accountsKeys')
+    
+    const claimed = localLinks.filter(({claimed}) => !!claimed)
+    const links = localLinks.filter(({claimed}) => !claimed)
 
     update('', { near, wallet, links, claimed, currentAliases, curUserIdx, curInfo, didRegistryContract, appIdx, appAliases, did, accountId, finished })
 }

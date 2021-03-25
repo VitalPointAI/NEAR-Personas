@@ -70,6 +70,7 @@ export default function PersonaCard(props) {
                 setDisplay(true)
               }
               setFinished(false)
+              console.log('state', state)
               
               let currentAliases = {}
              
