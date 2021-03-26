@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form'
 import { makeStyles } from '@material-ui/core/styles'
 import FileUpload from '../IPFSupload/ipfsUpload'
-import { ceramic } from '../../utils/ceramic'
-import * as nearAPI from 'near-api-js'
-import { IDX } from '@ceramicstudio/idx'
+import { flexClass } from '../../App'
 
 // Material UI components
 import Button from '@material-ui/core/Button'
@@ -17,8 +15,9 @@ import DialogTitle from '@material-ui/core/DialogTitle'
 import LinearProgress from '@material-ui/core/LinearProgress'
 import Avatar from '@material-ui/core/Avatar'
 import Grid from '@material-ui/core/Grid'
-import Typography from '@material-ui/core/Typography';
+import Typography from '@material-ui/core/Typography'
 import Divider from '@material-ui/core/Divider'
+
 
 
 // ReactQuill Component
@@ -26,38 +25,26 @@ import ReactQuill from 'react-quill';
 
 // CSS Styles
 import '../../../node_modules/react-quill/dist/quill.snow.css'
+import { CircularProgress } from '@material-ui/core';
 
 const useStyles = makeStyles((theme) => ({
-    root: {
-      flexGrow: 1,
-      margin: 'auto',
-      maxWidth: 325,
-      minWidth: 325,
-    },
-    card: {
-      margin: 'auto',
-    },
     progress: {
       width: '100%',
       '& > * + *': {
         marginTop: theme.spacing(2),
       },
     },
-    actionsContainer: {
-      marginBottom: theme.spacing(2),
-    },
-    resetContainer: {
-      padding: theme.spacing(3),
-    },
     large: {
         width: theme.spacing(7),
         height: theme.spacing(7),
         textAlign: 'center'
     },
-    heading: {
-      fontSize: 24,
-      marginLeft: '10px'
-    },
+    waiting: {
+      minWidth: '100%',
+      minHeight: '100%',
+      overflow: 'hidden',
+      padding: '20px'
+    }
     }));
 
 const imageName = require('../../img/default-profile.png') // default no-image avatar
@@ -65,11 +52,11 @@ const imageName = require('../../img/default-profile.png') // default no-image a
 export default function EditPersonaForm(props) {
     const [open, setOpen] = useState(true)
     const [finished, setFinished] = useState(true)
+    const [loaded, setLoaded] = useState(false)
     const [date, setDate] = useState('')
     const [name, setName] = useState('')
     const [avatar, setAvatar] = useState(imageName)
     const [shortBio, setShortBio] = useState('')
-    const [curUserIdx, setCurUserIdx] = useState()
 
     const { register, handleSubmit, watch, errors } = useForm()
 
@@ -77,84 +64,31 @@ export default function EditPersonaForm(props) {
         state,
         handleUpdate,
         handleEditPersonaClickState,
-        accountId
+        accountId,
+        curPersonaIdx
     } = props
     
     const classes = useStyles()
 
     useEffect(() => {
         async function fetchData() {
-          let did
-          let currentAliases = {}
-        
-          let existingDid = await state.didRegistryContract.hasDID({accountId: accountId})
-          if(existingDid){
-            try {
-              did = await state.didRegistryContract.getDID({accountId: accountId})
-              console.log('did here', did)
-            } catch (err) {
-              console.log('no did', err)
-            }
-       
-         
-            let demSeed = await ceramic.downloadSecret(state.appIdx, 'SeedsJWE', did)
-      
-          
-            let thisAccount = new nearAPI.Account(state.near.connection, accountId)
-            let demClient = await ceramic.getCeramic(thisAccount, demSeed)
+          setLoaded(false)
+           // Set Card Persona Idx       
+           if(accountId){
+              let result = await curPersonaIdx.get('profile', curPersonaIdx.id)
 
-            let definitions = await state.didRegistryContract.getDefinitions()
-        
-            let o = 0
-            let profileDef
-            while(o < definitions.length) {
-              let key = definitions[o].split(':')
-              if(key[0] == accountId && key[1] == 'profile'){
-                profileDef = key[2]
-                break
+              if(result) {
+                result.date ? setDate(result.date) : setDate('')
+                result.avatar ? setAvatar(result.avatar) : setAvatar(imageName)
+                result.shortBio ? setShortBio(result.shortBio) : setShortBio('')
+                result.name ? setName(result.name) : setName('')
               }
-              o++
-            }
-           
-            try {
-                let allAliases = await state.didRegistryContract.getAliases()
-              
-                //reconstruct aliases, get profile alias, and set IDXs
-                let i = 0
-                let profileAlias
-                while (i < allAliases.length) {
-                    let key = allAliases[i].split(':')
-                    let alias = {[key[0]]: key[1]}
-                    if (alias.profile == profileDef) {
-                      currentAliases = {...currentAliases, ...alias}
-                      break
-                    }
-                    i++
-                }
-        
-            } catch (err) {
-                console.log('error retrieving aliases', err)
-            }
-          
-            let userIdx = new IDX({ ceramic: demClient, aliases: currentAliases})
-            setCurUserIdx(userIdx)
-          
-
-            let result = await userIdx.get('profile', did)
-        
-             if(result) {
-                 result.date ? setDate(result.date) : setDate('')
-                 result.avatar ? setAvatar(result.avatar) : setAvatar(imageName)
-                 result.shortBio ? setShortBio(result.shortBio) : setShortBio('')
-                 result.name ? setName(result.name) : setName('')
-              }
-          }
-          
+           }
         }
        
         fetchData()
           .then((res) => {
-      
+            setLoaded(true)
           })
     },[])
 
@@ -198,7 +132,7 @@ export default function EditPersonaForm(props) {
             shortBio: shortBio
         }
      
-        let result = await curUserIdx.set('profile', record)
+        let result = await curPersonaIdx.set('profile', record)
      
 
       setFinished(true)
@@ -225,9 +159,11 @@ export default function EditPersonaForm(props) {
     ];
     
         return (
+           
             <div>
-            <div>
+       
             <Dialog open={open} onClose={handleClose} aria-labelledby="form-dialog-title">
+            { loaded ? (<>
               <DialogTitle id="form-dialog-title">Profile Data</DialogTitle>
               <DialogContent>
                   <DialogContentText style={{marginBottom: 10}}>
@@ -279,6 +215,7 @@ export default function EditPersonaForm(props) {
                
                   </div>
                 </DialogContent>
+               
               {!finished ? <LinearProgress className={classes.progress} style={{marginBottom: '25px' }}/> : (
               <DialogActions>
               <Button onClick={handleSubmit(onSubmit)} color="primary" type="submit">
@@ -290,9 +227,14 @@ export default function EditPersonaForm(props) {
               </DialogActions>)}
               <Divider style={{marginBottom: 10}}/>
               
-           
+              </>) : <><div className={classes.waiting}><div class={flexClass}><CircularProgress/></div><Grid container spacing={1} alignItems="center" justify="center" >
+              <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
+                <Typography variant="h5" align="center">Loading Persona Data</Typography>
+              </Grid>
+              </Grid></div></> }
             </Dialog>
+           
           </div>
-          </div>
+        
         )
 }

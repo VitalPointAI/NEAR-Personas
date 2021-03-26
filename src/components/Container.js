@@ -4,7 +4,6 @@ import SignIn from '../components/SignIn/signIn'
 import LogoutButton from '../components/LogoutButton/logoutButton'
 import Persona from '../components/Persona/persona'
 import AddPersonaForm from '../components/AddPersona/addPersona'
-import EditPersonaForm from '../components/EditPersona/editPersona'
 
 // Material UI
 import { makeStyles } from '@material-ui/core/styles'
@@ -55,17 +54,7 @@ export const Container = ({ children, state }) => {
     } = state
 
     useEffect(
-        () => {
-  
-        async function fetchData() {
-           
-        }
-
-        fetchData()
-            .then((res) => {
-             
-            })
-        
+        () => {        
     }, []
     )
 
@@ -86,7 +75,6 @@ export const Container = ({ children, state }) => {
         handleClose()
     }
 
-   
     return (
         <>
         <div class="background"></div>

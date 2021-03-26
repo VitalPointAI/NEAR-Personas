@@ -65,7 +65,6 @@ export default function Persona(props) {
             if(state.links.length || state.claimed.length > 0){
                 return true
             }
-            let isUpdated
         }
 
         fetchData()

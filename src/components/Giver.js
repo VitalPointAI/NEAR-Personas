@@ -97,7 +97,6 @@ export const Giver = ({ state, update, dispatch }) => {
                     {links.filter(person => person.owner == accountId).map(({ key, accountId, recipientName = '', owner }) =>
                         <PersonaCard
                             key={key}
-                            name={recipientName}
                             accountId={accountId}
                             owner={owner}
                             link={getLink(accountId, key, wallet)}

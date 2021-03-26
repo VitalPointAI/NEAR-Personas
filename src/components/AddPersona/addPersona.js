@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { makeStyles } from '@material-ui/core/styles'
 
 import { nameSuffix } from '../../state/near'
@@ -17,37 +17,14 @@ import Divider from '@material-ui/core/Divider'
 import InputAdornment from '@material-ui/core/InputAdornment'
 
 const useStyles = makeStyles((theme) => ({
-    root: {
-      flexGrow: 1,
-      margin: 'auto',
-      maxWidth: 325,
-      minWidth: 325,
+   
+  progress: {
+    width: '100%',
+    '& > * + *': {
+      marginTop: theme.spacing(2),
     },
-    card: {
-      margin: 'auto',
-    },
-    progress: {
-      width: '100%',
-      '& > * + *': {
-        marginTop: theme.spacing(2),
-      },
-    },
-    actionsContainer: {
-      marginBottom: theme.spacing(2),
-    },
-    resetContainer: {
-      padding: theme.spacing(3),
-    },
-    large: {
-        width: theme.spacing(7),
-        height: theme.spacing(7),
-        textAlign: 'center'
-    },
-    heading: {
-      fontSize: 24,
-      marginLeft: '10px'
-    },
-    }));
+  },
+  }));
 
 export default function AddPersonaForm(props) {
     const [open, setOpen] = useState(true)

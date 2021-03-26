@@ -4,7 +4,6 @@ import { makeStyles } from '@material-ui/core/styles'
 
 // Material UI Components
 import Button from '@material-ui/core/Button'
-import Paper from '@material-ui/core/Paper'
 import Card from '@material-ui/core/Card'
 import CardMedia from '@material-ui/core/CardMedia'
 import CardHeader from '@material-ui/core/CardHeader'
@@ -21,20 +20,12 @@ const useStyles = makeStyles((theme) => ({
         marginTop: 50,
         minHeight: 550,
     },
-    paper: {
-        padding: theme.spacing(2),
-        textAlign: 'center',
-        color: theme.palette.text.secondary,
-    },
     customCard: {
         maxWidth: '95%',
         minWidth: 275,
         margin: 'auto',
         padding: 20
     },
-    media: {
-        height: 140,
-      },
     button: {
         margin: theme.spacing(1),
       },

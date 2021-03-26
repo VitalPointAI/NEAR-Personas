@@ -38,26 +38,29 @@ const useStyles = makeStyles((theme) => ({
     },
   }));
 
+const imageName = require('../../img/default-profile.png') // default no-image avatar
+
 export default function PersonaCard(props) {
 
   const { state, dispatch, update } = useContext(appStore);
 
-     const [dataObj, setDataObj] = useState({})
-     const [avatar, setAvatar] = useState()
-     const [editPersonaClicked, setEditPersonaClicked] = useState(false)
-     const [claimed, setClaimed] = useState(false)
-     const [curUserIdx, setCurUserIdx] = useState()
-     const [display, setDisplay] = useState(false)
-     const [isUpdated, setIsUpdated] = useState(false)
-     const [anchorEl, setAnchorEl] = useState(null);
-     const [did, setDid] = useState()
-     const [finished, setFinished] = useState()
+    const [date, setDate] = useState('')
+    const [name, setName] = useState('')
+    const [avatar, setAvatar] = useState(imageName)
+    const [shortBio, setShortBio] = useState('')
+    const [editPersonaClicked, setEditPersonaClicked] = useState(false)
+    const [claimed, setClaimed] = useState(false)
+    const [curUserIdx, setCurUserIdx] = useState()
+    const [display, setDisplay] = useState(false)
+    const [isUpdated, setIsUpdated] = useState(false)
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [did, setDid] = useState()
+    const [finished, setFinished] = useState()
 
     const classes = useStyles();
 
     const { 
       owner,
-      name,
       accountId,
       link
    } = props
@@ -70,135 +73,52 @@ export default function PersonaCard(props) {
                 setDisplay(true)
               }
               setFinished(false)
-              
-              let currentAliases = {}
              
-              let existingDid = await state.didRegistryContract.hasDID({accountId: accountId})
-          
-              if(existingDid){
-                let thisDid
-                try {
-                  thisDid = await state.didRegistryContract.getDID({accountId: accountId})
-           
-                  setDid(thisDid)
-                } catch (err) {
-                  console.log('no did', err)
-                }
-            
+              // Set Card Persona Idx
              
-                
-                let demSeed = await ceramic.downloadSecret(state.appIdx, 'SeedsJWE', thisDid)
-                if(!demSeed) {
-                  demSeed = await ceramic.getLocalSeed(accountId)
-                  await ceramic.storeSeedSecret(state.appIdx, demSeed, 'SeedsJWE', thisDid)
-                }
-               
-                let thisAccount = new nearAPI.Account(state.near.connection, accountId)
-                let demClient = await ceramic.getCeramic(thisAccount, demSeed)
-
-                let definitions = await state.didRegistryContract.getDefinitions()
-              
-                let o = 0
-                let profileDef
-                while(o < definitions.length) {
-                  let key = definitions[o].split(':')
-                  if(key[0] == accountId && key[1] == 'profile'){
-                    profileDef = key[2]
-                    break
-                  }
-                  o++
-                }
-
-                let k = 0
-                let accountKeysDef
-                while(k < definitions.length) {
-                  let key = definitions[k].split(':')
-                  if(key[0] == accountId && key[1] == 'accountsKeys'){
-                    accountKeysDef = key[2]
-                    break
-                  }
-                  k++
-                }
-            
-                try {
-                    let allAliases = await state.didRegistryContract.getAliases()
-                
-                    //reconstruct aliases, get profile and accountKeys aliases, and set IDXs
-                    let i = 0
-                    let profileAlias
-                    while (i < allAliases.length) {
-                        let key = allAliases[i].split(':')
-                        let alias = {[key[0]]: key[1]}
+             
+              if(accountId){
+                  let existingDid = await state.didRegistryContract.hasDID({accountId: accountId})
+                  if(existingDid){
+                      let thisDid = await state.didRegistryContract.getDID({
+                          accountId: accountId
+                      })
+                      setDid(thisDid)
+                     
+                      let personaAccount = new nearAPI.Account(state.near.connection, accountId)
                       
-                        if (alias.profile == profileDef) {
-                          currentAliases = {...currentAliases, ...alias}
+                      let curPersonaIdx = await ceramic.getCurrentUserIdx(personaAccount, state.didRegistryContract, state.appIdx, thisDid)
+                      setCurUserIdx(curPersonaIdx)
+                      
+                      let i = 0
+                      while (i < state.claimed.length) {
+                        if(state.claimed[i].accountId == accountId){
+                          setClaimed(true)
+                          break
                         }
-                       
-                        if (alias.accountsKeys == accountKeysDef) {
-                          currentAliases = {...currentAliases, ...alias}
-                        }
-                        
-                          i++
-                    }
-            
-                } catch (err) {
-                    console.log('error retrieving aliases', err)
-                }
-                
-                let userIdx = new IDX({ ceramic: demClient, aliases: currentAliases})
-                setCurUserIdx(userIdx)
-              
-                // synch local storage Account Links to what is stored on Ceramic for this user
-                let allAccounts = await ceramic.downloadKeysSecret(userIdx, 'accountsKeys')
-
-                const storageLinks = get(ACCOUNT_LINKS, [])
-
-                if(allAccounts.length != storageLinks.length){
-                    if(allAccounts.length < storageLinks.length){
-                      await ceramic.storeKeysSecret(userIdx, storageLinks, 'accountsKeys', userIdx.id)
-                    }
-                    if(allAccounts.length > storageLinks.length){
-                        set(ACCOUNT_LINKS, allAccounts)
-                    }
-                }
-
-                let result = await userIdx.get('profile', userIdx.id)
-              
-                let i = 0
-                while (i < state.claimed.length) {
-                  if(state.claimed[i].accountId == accountId){
-                    let claimed = state.claimed[i].claimed
-                    setClaimed(claimed)
-                    break
+                        i++
+                      }
+                  
+                      let result = await curPersonaIdx.get('profile', curPersonaIdx.id)
+                      
+                      if(result){
+                        result.date ? setDate(result.date) : setDate('')
+                        result.avatar ? setAvatar(result.avatar) : setAvatar(imageName)
+                        result.shortBio ? setShortBio(result.shortBio) : setShortBio('')
+                        result.name ? setName(result.name) : setName('')
+                        return true
+                      }
+                      return true
                   }
-                  i++
-                }
-
-                let isUpdated
-                let dataObj = {
-                    accountId: accountId,
-                    did: did,
-                    date: result ? result.date : '',
-                    avatar: result ? result.avatar : '',
-                    shortBio: result ? result.shortBio : '',
-                    name: result ? result.name : '',
-                }
-                setAvatar(dataObj.avatar)
               }
-  
-              return dataObj
-            
             }
-         
-      
-      
+
       fetchData()
           .then((res) => {
-            setDataObj(res)
             setFinished(true)
           })
       
-  }, [state.appIdx, avatar, isUpdated]
+  }, [isUpdated]
   )
 
   function handleUpdate(property){
@@ -224,8 +144,8 @@ export default function PersonaCard(props) {
         {display ? (
           <Card className={classes.card}>
             <CardHeader
-              title={dataObj.name}
-              subheader={dataObj.date}
+              title={name}
+              subheader={date}
               avatar = {<Avatar variant="square" src={avatar} className={classes.square} />}
            />
               <CardContent>
@@ -234,7 +154,7 @@ export default function PersonaCard(props) {
                 </Typography>
               </CardContent>
       
-            {finished ? ( <CardActions>
+            { finished ? ( <CardActions>
           
               {!claimed ? (
                   <Link color="primary" href={link}>
@@ -253,15 +173,15 @@ export default function PersonaCard(props) {
               {editPersonaClicked ? <EditPersonaForm
                 state={state}
                 handleEditPersonaClickState={handleEditPersonaClickState}
-                curUserIdx={curUserIdx}
+                curPersonaIdx={curUserIdx}
                 handleUpdate={handleUpdate}
                 did={did}
                 accountId={accountId}
                 /> : null }
 
-            </CardActions> ) : <LinearProgress />}
-          </Card>
-          ) : null }
+            </CardActions> ) : <LinearProgress /> }
+          </Card>) : null  }
+         
         </>
        
     )
