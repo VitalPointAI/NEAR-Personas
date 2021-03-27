@@ -107,16 +107,18 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     // Set Current User Ceramic Client
 
     let curUserIdx
+    let did
     let existingDid = await didRegistryContract.hasDID({accountId: accountId})
     if(existingDid){
-        let did = await didRegistryContract.getDID({
+        did = await didRegistryContract.getDID({
             accountId: accountId
         })
         curUserIdx = await ceramic.getCurrentUserIdx(account, didRegistryContract, appIdx, did)
-        
+      
     }
     if(!existingDid){
         curUserIdx = await ceramic.getCurrentUserIdxNoDid(appIdx, didRegistryContract, account)
+      
     }
     
     // Set Current User's Info

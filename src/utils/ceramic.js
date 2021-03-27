@@ -110,6 +110,9 @@ class Ceramic {
 
   async getLocalSeed(accountId) {
     const secretKey = localStorage.getItem('nearprofile:seed:'+accountId)
+    if (!secretKey) {
+      return false
+    }
     let seed = Buffer.from(secretKey.slice(0, 32))
     return seed
   }
@@ -427,27 +430,26 @@ class Ceramic {
   }
 
   async getCurrentUserIdx(account, contract, appIdx, did){
-    const seed = await this.getLocalSeed(account.accountId)
-    
-    if(!seed) {
-      const seed = await this.downloadSecret(appIdx, 'SeedsJWE', did)
-    }
-    
-    if(seed) {
-        let currentUserCeramicClient = await this.getCeramic(account, seed)
-    
-        //initialize aliases if required
-      
-        const schema1 = this.schemaSetup(account.accountId, 'profile', 'user profile data', contract, currentUserCeramicClient, profileSchema)
-        const schema2 = this.schemaSetup(account.accountId, 'accountsKeys', 'user account info', contract, currentUserCeramicClient, accountKeysSchema)
-        await Promise.all([schema1, schema2])
-        
-        let currentAliases = await this.getUsersAliases(account.accountId, contract)
-        const curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
    
-        return curUserIdx
+    let seed = await this.getLocalSeed(account.accountId)
+   
+    if(!seed) {
+      seed = await this.downloadSecret(appIdx, 'SeedsJWE', did)
+    
     }
-    return false
+     
+      let currentUserCeramicClient = await this.getCeramic(account, seed)
+  
+      //initialize aliases if required
+    
+      const schema1 = this.schemaSetup(account.accountId, 'profile', 'user profile data', contract, currentUserCeramicClient, profileSchema)
+      const schema2 = this.schemaSetup(account.accountId, 'accountsKeys', 'user account info', contract, currentUserCeramicClient, accountKeysSchema)
+      await Promise.all([schema1, schema2])
+      
+      let currentAliases = await this.getUsersAliases(account.accountId, contract)
+      const curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
+  
+      return curUserIdx
   }
 
   async getUsersAliases(accountId, contract) {
