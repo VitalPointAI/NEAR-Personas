@@ -105,29 +105,24 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     const appIdx = await ceramic.getAppIdx(didRegistryContract)
 
     // Set Current User Ceramic Client
-    
-    let curUserIdx
-    let did
-    if(accountId){
-        let existingDid = await didRegistryContract.hasDID({accountId: accountId})
-        if(existingDid){
-            did = await didRegistryContract.getDID({
-                accountId: accountId
-            })
-            curUserIdx = await ceramic.getCurrentUserIdx(account, didRegistryContract, appIdx, did)
-       
-        }
-        if(!existingDid){
-            curUserIdx = await ceramic.getCurrentUserIdxNoDid(appIdx, didRegistryContract, account)
-            did = curUserIdx.id
-            const curUserInfo = await curUserIdx.get('profile')
-        }
-    }
-        
-    // Set Current User's Info
-    let curInfo = await curUserIdx.get('profile')    
 
-    // synch local links with what's stored for the account in ceramic
+    let curUserIdx
+    let existingDid = await didRegistryContract.hasDID({accountId: accountId})
+    if(existingDid){
+        let did = await didRegistryContract.getDID({
+            accountId: accountId
+        })
+        curUserIdx = await ceramic.getCurrentUserIdx(account, didRegistryContract, appIdx, did)
+        
+    }
+    if(!existingDid){
+        curUserIdx = await ceramic.getCurrentUserIdxNoDid(appIdx, didRegistryContract, account)
+    }
+    
+    // Set Current User's Info
+    const curInfo = await curUserIdx.get('profile')    
+
+    //synch local links with what's stored for the account in ceramic
 
    
       
@@ -144,7 +139,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
             }
         }
         
-        update('', { curUserIdx, curInfo, didRegistryContract, appIdx, did, accountId, finished })
+        update('', { didRegistryContract, appIdx, accountId, curUserIdx, curInfo })
     }
     // check localLinks, see if they're still valid
 

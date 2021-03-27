@@ -1,8 +1,8 @@
 import CeramicClient from '@ceramicnetwork/http-client'
-import ThreeIdProvider from '3id-did-provider'
 import * as nearApiJs from 'near-api-js'
 import { IDX } from '@ceramicstudio/idx'
 import { createDefinition, publishSchema } from '@ceramicstudio/idx-tools'
+import { Ed25519Provider } from 'key-did-provider-ed25519'
 
 // schemas
 import { profileSchema } from '../schemas/profile'
@@ -119,9 +119,8 @@ class Ceramic {
       seed = await this.getSeed(account)
     }
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
-    const ceramic = new CeramicClient(API_URL, {docSyncEnabled: false, docSynchInterval: 30000})
-    const threeId = await ThreeIdProvider.create({ceramic, getPermission, seed})
-    const provider = threeId.getDidProvider()
+    const ceramic = new CeramicClient(API_URL, {cacheDocCommits: true, docSyncEnabled: false, docSynchInterval: 30000})
+    const provider = new Ed25519Provider(seed)
     await ceramic.setDIDProvider(provider)
     return ceramic
   }
@@ -129,23 +128,27 @@ class Ceramic {
   async getAppCeramic() {
     const seed = Buffer.from(process.env.APP_SEED.slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
-    const ceramic = new CeramicClient(API_URL, {docSyncEnabled: false, docSynchInterval: 30000})
-    const threeId = await ThreeIdProvider.create({ceramic, getPermission, seed})
-    const provider = threeId.getDidProvider()
+    const ceramic = new CeramicClient(API_URL, {cacheDocCommits: true, docSyncEnabled: false, docSynchInterval: 30000})
+    const provider = new Ed25519Provider(seed)
     await ceramic.setDIDProvider(provider)
     return ceramic
   }
 
   async associateDID(accountId, contract, ceramic) {
-    let didContract = await this.useDidContractFullAccessKey()
+   
     /** Restore any cached did first */
     const cached = localStorage.getItem('nearprofile:' + accountId + ':')
 
+    if (cached !== null) {
+      /** return */
+      return cached
+      }
 
     // ensure it's registered in the contract, if not, put it back there
     let exists = await contract.hasDID({accountId: accountId})
     
     if(!exists){
+      let didContract = await this.useDidContractFullAccessKey()
       try {
           await didContract.putDID({
             accountId: accountId,
@@ -156,11 +159,6 @@ class Ceramic {
       }
     }
     
-    if (cached !== null) {
-    /** return */
-    return cached
-    }
-
     /** Try and retrieve did from  contract if it exists */
     if (cached === null) {
       let did
@@ -177,6 +175,7 @@ class Ceramic {
 
         /** No cached DID existed, so create a new one and store it in the contract */
         if (ceramic.did.id) {
+          let didContract = await this.useDidContractFullAccessKey()
           try{
             did = await didContract.putDID({
               accountId: accountId,
@@ -289,8 +288,8 @@ class Ceramic {
   }
 
   async schemaSetup(accountId, schemaName, defDesc, contract, ceramicClient, schemaFormat){
-    // let doc = await ceramicClient.loadDocument('k2t6wyfsu4pg1p657eif0wdeav1r28f4u0jbjghtg18kt4esvzd40ka1cfb263')
-    // console.log('doc', doc)
+     //let doc = await ceramicClient.loadDocumentRecords('k2t6wyfsu4pg1p657eif0wdeav1r28f4u0jbjghtg18kt4esvzd40ka1cfb263')
+     //console.log('doc', doc)
     // check for existing profile definition for this account
     const definitions = await contract.getDefinitions()
    
@@ -300,7 +299,7 @@ class Ceramic {
         let key = definitions[m].split(':')
         if (key[0] == accountId && key[1] == schemaName){
           defExists = true
-          break
+          return true
         }
       m++
     }
@@ -419,28 +418,29 @@ class Ceramic {
 
   async getAppIdx(contract){
     const appClient = await this.getAppCeramic()
-    let appDid = await this.associateAppDID(process.env.APP_OWNER_ACCOUNT, contract, appClient)
-    await this.schemaSetup(process.env.APP_OWNER_ACCOUNT, 'SeedsJWE', 'encrypted dao seeds', contract, appClient, personaSeedsSchema)
+    const appDid = this.associateAppDID(process.env.APP_OWNER_ACCOUNT, contract, appClient)
+    const schemas = this.schemaSetup(process.env.APP_OWNER_ACCOUNT, 'SeedsJWE', 'encrypted dao seeds', contract, appClient, personaSeedsSchema)
+    await Promise.all([appDid, schemas])
     const appAliases = await this.getAppAliases(contract)
     const appIdx = new IDX({ ceramic: appClient, aliases: appAliases})
     return appIdx
   }
 
   async getCurrentUserIdx(account, contract, appIdx, did){
-
-    let seed = await this.downloadSecret(appIdx, 'SeedsJWE', did)
-
+    const seed = await this.getLocalSeed(account.accountId)
+    
     if(!seed) {
-      seed = await this.getLocalSeed(account.accountId)
-      await this.storeSeedSecret(appIdx, seed, 'SeedsJWE', did)
+      const seed = await this.downloadSecret(appIdx, 'SeedsJWE', did)
     }
     
     if(seed) {
         let currentUserCeramicClient = await this.getCeramic(account, seed)
     
         //initialize aliases if required
-        await this.schemaSetup(account.accountId, 'profile', 'user profile data', contract, currentUserCeramicClient, profileSchema)
-        await this.schemaSetup(account.accountId, 'accountsKeys', 'user account info', contract, currentUserCeramicClient, accountKeysSchema)
+      
+        const schema1 = this.schemaSetup(account.accountId, 'profile', 'user profile data', contract, currentUserCeramicClient, profileSchema)
+        const schema2 = this.schemaSetup(account.accountId, 'accountsKeys', 'user account info', contract, currentUserCeramicClient, accountKeysSchema)
+        await Promise.all([schema1, schema2])
         
         let currentAliases = await this.getUsersAliases(account.accountId, contract)
         const curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
@@ -529,8 +529,10 @@ class Ceramic {
     await this.schemaSetup(account.accountId, 'accountsKeys', 'user account info', contract, currentUserCeramicClient, accountKeysSchema)
     
     let currentAliases = await this.getUsersAliases(account.accountId, contract)
+
+    const curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
       
-    return curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
+    return curUserIdx
   }
 
 }

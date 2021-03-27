@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
+import { get, set, del } from '../../utils/storage'
 import EditPersonaForm from '../../components/EditPersona/editPersona'
 import { makeStyles } from '@material-ui/core/styles'
+import { ceramic } from '../../utils/ceramic'
 
 // Material UI Components
 import Avatar from '@material-ui/core/Avatar'
@@ -42,37 +44,46 @@ const useStyles = makeStyles((theme) => ({
       },
     }));
 
+const imageName = require('../../img/default-profile.png') // default no-image avatar
+
 export default function Persona(props) {
-    const [dataObj, setDataObj] = useState({})
     const [profileExists, setProfileExists] = useState(false)
     const [editPersonaClicked, setEditPersonaClicked] = useState(false)
-    const [anchorEl, setAnchorEl] = useState(null);
-    
+    const [anchorEl, setAnchorEl] = useState(null)
     const [isUpdated, setIsUpdated] = useState(false)
+    const [finished, setFinished] = useState()
+    const [avatar, setAvatar] = useState(props.avatar)
 
     const {
         state,
         accountId,
-        balance,
-        avatar
+        balance
     } = props
-
 
     useEffect(
         () => {
   
         async function fetchData() {
+            
+            
+            let result = await state.curUserIdx.get('profile', state.curUserIdx.id)
+            if(result){
+            result.avatar ? setAvatar(result.avatar) : setAvatar(imageName)
+            }
+            
             if(state.links.length || state.claimed.length > 0){
                 return true
             }
+
         }
 
         fetchData()
             .then((res) => {
              res ? setProfileExists(true) : null
+             setFinished(true)
             })
         
-    }, [state.links, state.claimed, isUpdated]
+    }, [state.curUserIdx, state.links, state.claimed, isUpdated]
     )
 
 const classes = useStyles()
@@ -111,9 +122,8 @@ const handleEditPersonaClick = () => {
             {editPersonaClicked ? <EditPersonaForm
                 state={state}
                 handleEditPersonaClickState={handleEditPersonaClickState}
-                curUserIdx={state.curUserIdx}
+                curPersonaIdx={state.curUserIdx}
                 handleUpdate={handleUpdate}
-                did={state.did}
                 accountId={accountId}
                 /> : null }
         </Grid>

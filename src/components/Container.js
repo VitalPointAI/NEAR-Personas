@@ -104,7 +104,7 @@ export const Container = ({ children, state }) => {
         </AppBar>
         <Grid container spacing={1}>
             <Grid item xs={12} sm={12} md={12} lg={12} xl={12} >
-               {wallet && wallet.signedIn ? <Persona state={state} accountId={wallet.getAccountId()} balance={wallet.balance} avatar={curInfo.avatar}/> : null}
+               {wallet && wallet.signedIn ? <Persona state={state} accountId={wallet.getAccountId()} balance={wallet.balance} /> : null}
             </Grid>
         </Grid>
 
