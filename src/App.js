@@ -19,6 +19,13 @@ const App = () => {
     };
     useEffect(onMount, []);
 
+    window.onerror = function (message, url, lineNo) {
+        alert('Error: ' + message + 
+       '\nUrl: ' + url + 
+       '\nLine Number: ' + lineNo);
+    return true;   
+    }
+    
     const {
         accountData, funding, wallet
     } = state

@@ -81,11 +81,26 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         let state = getState()
 
         const links = get(ACCOUNT_LINKS, [])
-        links.push({ key: keyPair.secretKey, accountId, recipientName, owner, keyStored: Date.now() })
-        await ceramic.storeKeysSecret(state.curUserIdx, links, 'accountsKeys')
-        set(ACCOUNT_LINKS, links)
-       
-        await contract.create_account({ new_account_id: accountId, new_public_key: keyPair.publicKey.toString() }, GAS, parseNearAmount(amount))
+        let c = 0
+        let accountExists
+        while(c < links.length) {
+            if(links[c].accountId == accountId){
+                accountExists = true
+                alert('This account already exists in local storage, it will be updated.')
+                links[c] = { key: keyPair.secretKey, accountId: accountId, recipientName: recipientName, owner: owner, keyStored: Date.now() }
+                break
+            } else {
+                accountExists = false
+            }
+        c++
+        }
+        if(!accountExists){
+            links.push({ key: keyPair.secretKey, accountId, recipientName, owner, keyStored: Date.now() })
+            await ceramic.storeKeysSecret(state.curUserIdx, links, 'accountsKeys')
+            set(ACCOUNT_LINKS, links)
+        
+            await contract.create_account({ new_account_id: accountId, new_public_key: keyPair.publicKey.toString() }, GAS, parseNearAmount(amount))
+        }
     }
 
     if(wallet.signedIn){
@@ -108,40 +123,55 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 
     let curUserIdx
     let did
+   
     let existingDid = await didRegistryContract.hasDID({accountId: accountId})
+   
     if(existingDid){
         did = await didRegistryContract.getDID({
             accountId: accountId
         })
-        curUserIdx = await ceramic.getCurrentUserIdx(account, didRegistryContract, appIdx, did)
-      
+        let ownerAccounts = get(ACCOUNT_LINKS, [])
+       
+        let b = 0
+        let owner
+        while(b < ownerAccounts.length) {
+            if(ownerAccounts[b].accountId == accountId){
+                owner = ownerAccounts[b].owner
+                break
+            }
+        b++
+        }
+        if(owner != undefined){
+            const ownerAccount = new nearAPI.Account(near.connection, owner)
+            const ownerIdx = await ceramic.getCurrentUserIdx(ownerAccount, appIdx, didRegistryContract, owner)
+            curUserIdx = await ceramic.getCurrentUserIdx(account, appIdx, didRegistryContract, owner, ownerIdx)
+        } else {
+            curUserIdx = await ceramic.getCurrentUserIdx(account, appIdx, didRegistryContract)
+        }
+        
     }
     if(!existingDid){
         curUserIdx = await ceramic.getCurrentUserIdxNoDid(appIdx, didRegistryContract, account)
-      
     }
     
     // Set Current User's Info
-    const curInfo = await curUserIdx.get('profile')    
+    const curInfo = await curUserIdx.get('profile')
 
     //synch local links with what's stored for the account in ceramic
-
-   
-      
-        let allAccounts = await ceramic.downloadKeysSecret(curUserIdx, 'accountsKeys')
-     
-        const storageLinks = get(ACCOUNT_LINKS, [])
-        
-        if(allAccounts.length != storageLinks.length){
-            if(allAccounts.length < storageLinks.length){
-                await ceramic.storeKeysSecret(curUserIdx, storageLinks, 'accountsKeys')
-            }
-            if(allAccounts.length > storageLinks.length){
-                set(ACCOUNT_LINKS, allAccounts)
-            }
+    let allAccounts = await ceramic.downloadKeysSecret(curUserIdx, 'accountsKeys')
+    
+    const storageLinks = get(ACCOUNT_LINKS, [])
+    
+    if(allAccounts.length != storageLinks.length){
+        if(allAccounts.length < storageLinks.length){
+            await ceramic.storeKeysSecret(curUserIdx, storageLinks, 'accountsKeys')
         }
-        
-        update('', { didRegistryContract, appIdx, accountId, curUserIdx, curInfo })
+        if(allAccounts.length > storageLinks.length){
+            set(ACCOUNT_LINKS, allAccounts)
+        }
+    }
+    
+    update('', { didRegistryContract, appIdx, accountId, curUserIdx, curInfo })
     }
     // check localLinks, see if they're still valid
 
@@ -206,8 +236,8 @@ export const unclaimLink = (keyToFind) => async ({ update }) => {
 
 export const keyRotation = () => async ({ update, getState, dispatch }) => {
     const state = getState()
- 
-    const { key, accountId, publicKey, seedPhrase } = state.accountData
+   
+    const { key, accountId, publicKey, seedPhrase, recipientName, owner } = state.accountData
 
     const keyPair = KeyPair.fromString(key)
     const signer = await InMemorySigner.fromKeyPair(networkId, accountId, keyPair)
@@ -216,17 +246,28 @@ export const keyRotation = () => async ({ update, getState, dispatch }) => {
     });
     const account = new nearAPI.Account(near.connection, accountId);
     const accessKeys = await account.getAccessKeys()
-    const ceramicSeed = Buffer.from(seedPhrase.slice(0, 32))
 
     const didContract = await ceramic.initiateDidRegistryContract(account)
 
     const appIdx = await ceramic.getAppIdx(didContract)
 
-    let didExists = await didContract.hasDID({accountId: accountId})
-   
-    if(!didExists){
-        await ceramic.getCurrentUserIdxNoDid(appIdx, didContract, account, ceramicSeed)                 
+    const ownerAccount = new nearAPI.Account(near.connection, owner);
+
+    let ownerAccounts = get(ACCOUNT_LINKS, [])
+  
+    let b = 0
+    let ownersowner
+    while(b < ownerAccounts.length) {
+        if(ownerAccounts[b].accountId == owner){
+            ownersowner = ownerAccounts[b].owner
+            break
+        }
+    b++
     }
+    
+    const ownerIdx = await ceramic.getCurrentUserIdx(ownerAccount, appIdx, ownersowner)
+   
+    await ceramic.getCurrentUserIdxNoDid(appIdx, didContract, account, keyPair, recipientName, owner, ownerIdx)                 
     
     const actions = [
         deleteKey(PublicKey.from(accessKeys[0].public_key)),

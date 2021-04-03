@@ -75,10 +75,9 @@ export default function PersonaCard(props) {
               setFinished(false)
              
               // Set Card Persona Idx
-             
-             
               if(accountId){
                   let existingDid = await state.didRegistryContract.hasDID({accountId: accountId})
+                
                   if(existingDid){
                       let thisDid = await state.didRegistryContract.getDID({
                           accountId: accountId
@@ -86,10 +85,22 @@ export default function PersonaCard(props) {
                       setDid(thisDid)
                      
                       let personaAccount = new nearAPI.Account(state.near.connection, accountId)
-                      
-                      let curPersonaIdx = await ceramic.getCurrentUserIdx(personaAccount, state.didRegistryContract, state.appIdx, thisDid)
+
+                      let ownerAccounts = get(ACCOUNT_LINKS, [])
+                      let b = 0
+                      let owner
+                      while(b < ownerAccounts.length) {
+                          if(ownerAccounts[b].accountId == accountId){
+                          owner = ownerAccounts[b].owner
+                          break
+                          }
+                      b++
+                      }
+                      const ownerAccount = new nearAPI.Account(state.near.connection, owner)
+                      const ownerIdx = await ceramic.getCurrentUserIdx(ownerAccount, state.appIdx, state.didRegistryContract, owner)
+                      let curPersonaIdx = await ceramic.getCurrentUserIdx(personaAccount, state.appIdx, state.didRegistryContract, owner, ownerIdx)
                       setCurUserIdx(curPersonaIdx)
-                      
+                     
                       let i = 0
                       while (i < state.claimed.length) {
                         if(state.claimed[i].accountId == accountId){

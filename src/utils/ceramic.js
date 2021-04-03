@@ -1,5 +1,6 @@
 import CeramicClient from '@ceramicnetwork/http-client'
 import * as nearApiJs from 'near-api-js'
+import { get, set, del } from './storage'
 import { IDX } from '@ceramicstudio/idx'
 import { createDefinition, publishSchema } from '@ceramicstudio/idx-tools'
 import { Ed25519Provider } from 'key-did-provider-ed25519'
@@ -7,11 +8,11 @@ import { Ed25519Provider } from 'key-did-provider-ed25519'
 // schemas
 import { profileSchema } from '../schemas/profile'
 import { accountKeysSchema } from '../schemas/accountKeys'
-import { personaSeedsSchema } from '../schemas/personaSeeds'
-
-const bip39 = require('bip39')
+import { definitionsSchema } from '../schemas/definitions'
+import { schemaSchema } from '../schemas/schemas'
 
 import { config } from '../state/config'
+const axios = require('axios').default;
 
 export const {
     FUNDING_DATA, FUNDING_DATA_BACKUP, ACCOUNT_LINKS, GAS, SEED_PHRASE_LOCAL_COPY,
@@ -33,28 +34,26 @@ const {
   }
 } = nearApiJs
 
-
-const getPermission = async (request) => {
-  return request.payload.paths
-}
-
-
 class Ceramic {
 
   async storeSeedSecret(idx, payload, key, did) {
+    console.log('did seed secret', did)
+    console.log('key', key)
+    console.log('store seed started')
     let record = await idx.get(key, idx._ceramic.did.id)
+    console.log('record', record)
     if(!record){
       record = { seeds: [] }
     }
    
     const secretData = { did, payload }
-   
+    console.log('secretData', secretData)
     let access = [idx._ceramic.did.id]
     if(did) access.push(did)
     const jwe = await idx._ceramic.did.createDagJWE(secretData, access)
   
     record.seeds.push(jwe)
-  
+    console.log('record at end', record)
     await idx.set(key, record)
   }
 
@@ -75,7 +74,6 @@ class Ceramic {
     await idx.set(key, record)
   }
   
-
   async downloadSecret(idx, key, did) {
   
     let records = await idx.get(key)
@@ -108,13 +106,17 @@ class Ceramic {
     return seed
   }
 
-  async getLocalSeed(accountId) {
-    const secretKey = localStorage.getItem('nearprofile:seed:'+accountId)
-    if (!secretKey) {
-      return false
+  async getLocalAccountSeed(accountId){
+    let accounts = get(ACCOUNT_LINKS, [])
+    let i = 0
+    while (i < accounts.length){
+      if(accounts[i].accountId == accountId){
+        let seed = Buffer.from((accounts[i].key).slice(0,32))
+        return seed
+      }
+      i++
     }
-    let seed = Buffer.from(secretKey.slice(0, 32))
-    return seed
+    return false
   }
 
   async getCeramic(account, seed) {
@@ -129,26 +131,22 @@ class Ceramic {
   }
 
   async getAppCeramic() {
-    const seed = Buffer.from(process.env.APP_SEED.slice(0, 32))
+    let retrieveSeed = await axios.get('https://vitalpointkeys.vault.azure.net/secrets/APPSEED/08f977285e6c48cb9ed5c168fe5de206')
+    console.log('retrieveseed', retrieveSeed)
+    const seed = Buffer.from(retrieveSeed.slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
-    const ceramic = new CeramicClient(API_URL, {cacheDocCommits: true, docSyncEnabled: false, docSynchInterval: 30000})
+    const ceramic = new CeramicClient(API_URL, {docSyncEnabled: false, docSynchInterval: 30000})
     const provider = new Ed25519Provider(seed)
     await ceramic.setDIDProvider(provider)
     return ceramic
   }
 
   async associateDID(accountId, contract, ceramic) {
-   
-    /** Restore any cached did first */
-    const cached = localStorage.getItem('nearprofile:' + accountId + ':')
-
-    if (cached !== null) {
-      /** return */
-      return cached
-      }
 
     // ensure it's registered in the contract, if not, put it back there
     let exists = await contract.hasDID({accountId: accountId})
+
+    if(exists) return ceramic.did.id
     
     if(!exists){
       let didContract = await this.useDidContractFullAccessKey()
@@ -157,40 +155,12 @@ class Ceramic {
             accountId: accountId,
             did: ceramic.did.id
           }, process.env.DEFAULT_GAS_VALUE)
+          // cache the new DID in localstorage
+          localStorage.setItem('nearprofile:' + accountId + ':', ceramic.did.id)
+          return ceramic.did.id
       } catch (err) {
         console.log(err)
       }
-    }
-    
-    /** Try and retrieve did from  contract if it exists */
-    if (cached === null) {
-      let did
-        try {
-            let didPresent = await contract.hasDID({accountId: accountId})
-            if(didPresent) {   
-              did = await contract.getDID({accountId: accountId})
-              localStorage.setItem('nearprofile:' + accountId + ':', did)
-              return did
-            }
-        } catch (err) {
-            console.log('no DID retrievable', err)
-        }
-
-        /** No cached DID existed, so create a new one and store it in the contract */
-        if (ceramic.did.id) {
-          let didContract = await this.useDidContractFullAccessKey()
-          try{
-            did = await didContract.putDID({
-              accountId: accountId,
-              did: ceramic.did.id
-            }, process.env.DEFAULT_GAS_VALUE)
-            // cache the new DID in localstorage
-            localStorage.setItem('nearprofile:' + accountId + ':', ceramic.did.id)
-            return ceramic.did.id
-          } catch (err) {
-            console.log('problem storing DID', err)
-          }
-        }
     }
   }
 
@@ -227,7 +197,8 @@ class Ceramic {
   async useDidContractFullAccessKey() {    
 
     // Step 1:  get the keypair from the contract's full access private key
-    let keyPair = KeyPair.fromString(process.env.DID_CONTRACT_PRIV_KEY)
+    let string = await axios.get('https://vitalpointkeys.vault.azure.net/secrets/DIDCONTRACTPRIVKEY/e416bf5c9e9141499b2a7439227a7cc4')
+    let keyPair = KeyPair.fromString(string)
 
     // Step 2:  load up an inMemorySigner using the keyPair for the account
     let signer = await InMemorySigner.fromKeyPair(networkId, didRegistryContractName, keyPair)
@@ -250,7 +221,9 @@ class Ceramic {
           'findDefinition',
           'findAlias',
           'getAliases',
-          'hasDID'
+          'hasDID',
+          'retrieveAlias',
+          'hasAlias'
       ],
       // Change methods can modify the state. But you don't receive the returned value when called.
       changeMethods: [
@@ -258,7 +231,8 @@ class Ceramic {
           'initialize',
           'addSchema',
           'addDefinition',
-          'addAlias'
+          'addAlias',
+          'storeAlias'
       ],
   })
     return didRegistryContract
@@ -276,7 +250,9 @@ class Ceramic {
           'findDefinition',
           'findAlias',
           'getAliases',
-          'hasDID'
+          'hasDID',
+          'retrieveAlias',
+          'hasAlias'
       ],
       // Change methods can modify the state. But you don't receive the returned value when called.
       changeMethods: [
@@ -284,75 +260,102 @@ class Ceramic {
           'initialize',
           'addSchema',
           'addDefinition',
-          'addAlias'
+          'addAlias',
+          'storeAlias'
       ],
   })
     return didRegistryContract
   }
 
-  async schemaSetup(accountId, schemaName, defDesc, contract, ceramicClient, schemaFormat){
-     //let doc = await ceramicClient.loadDocumentRecords('k2t6wyfsu4pg1p657eif0wdeav1r28f4u0jbjghtg18kt4esvzd40ka1cfb263')
-     //console.log('doc', doc)
-    // check for existing profile definition for this account
-    const definitions = await contract.getDefinitions()
-   
+  async getAlias(aliasName, client, schema, description, contract) {
+    try {
+      let aliasExists = await contract.hasAlias({alias: aliasName})
+      if(aliasExists){
+        let alias = await contract.retrieveAlias({alias: aliasName})
+        return alias
+      }
+      if(!aliasExists){
+        let schemaURL = await publishSchema(client, {content: schema})
+        let definition = await createDefinition(client, {
+          name: aliasName,
+          description: description,
+          schema: schemaURL.commitId.toUrl()
+        })
+        let didContract = await this.useDidContractFullAccessKey()
+        await didContract.storeAlias({alias: aliasName, definition: definition.id.toString()})
+        return definition.id.toString()
+      }
+    } catch (err) {
+      console.log('problem retrieving alias', err)
+      return false
+    }
+  }
+
+  async aliasSetup(idx, accountId, aliasName, defDesc, schemaFormat, ceramicClient) {
+    const currentDefinitions = await idx.get('definitions', idx.id)
+
     let defExists
-    let m = 0
-    while (m < definitions.length) {
-        let key = definitions[m].split(':')
-        if (key[0] == accountId && key[1] == schemaName){
-          defExists = true
-          return true
-        }
-      m++
+    if(currentDefinitions != null){
+      let m = 0
+        while (m < currentDefinitions.defs.length) {
+            if (currentDefinitions.defs[m].accountId == accountId && currentDefinitions.defs[m].alias == aliasName){
+              defExists = true
+              return true
+            }
+        m++
+      }
+    } else {
+      defExists = false
     }
     
     if(!defExists) {
 
-      let didContract = await this.useDidContractFullAccessKey()
+      const currentSchemas = await idx.get('schemas', idx.id)
 
-      const schemas = await contract.getSchemas()
-
-      // check for existing schema for this account
+      // check for existing schema for this account from it's owner's account idx
       let schemaExists
-      let k = 0
-      while (k < schemas.length) {
-          let key = schemas[k].split(':')
-          if (key[0] == accountId && key[1] == schemaName){
-          schemaExists = true
-          break
-          }
-          k++
+      if(currentSchemas != null ){
+        let k = 0
+        while (k < currentSchemas.schemas.length) {
+            if (currentSchemas.schemas[k].accountId == accountId && currentSchemas.schemas[k].name == aliasName){
+            schemaExists = true
+            break
+            }
+            k++
+        }
+      } else {
+        schemaExists = false
       }
 
+      let schemaURL
       if(!schemaExists){
           // create a new Schema
           
           let schemaURL = await publishSchema(ceramicClient, {content: schemaFormat})
+
+          let schemaRecords = await idx.get('schemas', idx.id)
         
-          try{
-          let found = await didContract.findSchema({
-            schema: accountId + ':' + schemaName + ':' + schemaURL.commitId.toUrl()
-          })
-          if(!found){
-            await didContract.addSchema({
-            schema: accountId + ':' + schemaName + ':' + schemaURL.commitId.toUrl()
-            }, process.env.DEFAULT_GAS_VALUE)
+  
+          if(schemaRecords == null){
+            schemaRecords = { schemas: [] }
           }
-          } catch (err) {
-            console.log('error adding schema', err)
-          }
+         
+          let record = {
+              accountId: accountId,
+              name: aliasName,
+              url: schemaURL.commitId.toUrl()
+            }
+            
+          schemaRecords.schemas.push(record)
+          let result = await idx.set('schemas', schemaRecords)
       }
 
-     
-      // get profile Schema url from didContract
-      const updatedSchemas = await contract.getSchemas()
-      let schemaURL
+      let updatedSchemas = await idx.get('schemas', idx.id)
+      
       let n = 0
-      while (n < updatedSchemas.length) {
-        let key = updatedSchemas[n].split(':')
-        if(key[0] == accountId && key[1] == schemaName){
-            schemaURL = key[2] + ':' + key[3]
+      while (n < updatedSchemas.schemas.length) {
+        if(updatedSchemas.schemas[n].accountId == accountId && updatedSchemas.schemas[n].name == aliasName){
+            schemaURL = updatedSchemas.schemas[n].url
             break
         }
         n++
@@ -362,7 +365,7 @@ class Ceramic {
       let definition
       try {
         definition = await createDefinition(ceramicClient, {
-          name: schemaName,
+          name: aliasName,
           description: defDesc,
           schema: schemaURL
         })
@@ -370,170 +373,188 @@ class Ceramic {
         console.log('definition issue', err)
       }
 
-      // record the new definition
-      try{
-          await didContract.addDefinition({
-          def: accountId + ':' + schemaName + ':' + definition.id.toString()
-          }, process.env.DEFAULT_GAS_VALUE)
-      } catch (err) {
-        console.log('error adding definition ', err)
+      let defRecords = await idx.get('definitions', idx.id)
+
+      if(defRecords == null){
+        defRecords = { defs: [] }
       }
 
-      // record the alias
-      let recordAlias = schemaName +':'+ definition.id.toString()
-      try {
-        let anAlias = await contract.findAlias({alias: recordAlias})
-        if(!anAlias) {
-          
-            await didContract.addAlias({
-                alias: recordAlias
-            }, process.env.DEFAULT_GAS_VALUE)
+      let record = {
+          accountId: accountId,
+          alias: aliasName,
+          def: definition.id.toString()
         }
-      } catch (err) {
-          console.log('problem recording alias', err)
-      }
+
+      defRecords.defs.push(record)
+
+      let result = await idx.set('definitions', defRecords)
       
       return true
     }
     return true
   }
 
-  async getAppAliases(contract) {
-    let appAliases = {}
-    try {
-        let allAliases = await contract.getAliases()
+  async getAliases(idx, accountId) {
     
-        //reconstruct aliases and set IDXs
-        let i = 0
-        
-        while (i < allAliases.length) {
-            let key = allAliases[i].split(':')
-            let alias = {[key[0]]: key[1]}
-            appAliases = {...appAliases, ...alias}
-            i++
-        }
-        return appAliases
-    } catch (err) {
-        console.log('error retrieving aliases', err)
-    }
+    let aliases = {}
+    
+    let allAliases = await idx.get('definitions', idx.id)
+    
+    if(allAliases != null) {
+
+      //retrieve aliases for each definition
+      let i = 0
+      
+      while (i < allAliases.defs.length) {
+          if(allAliases.defs[i].accountId == accountId){
+            let alias = {[allAliases.defs[i].alias]: allAliases.defs[i].def}
+            aliases = {...aliases, ...alias}
+          }
+          i++
+      }
+      return aliases
+    } else {
     return {}
+    }
   }
 
+
+  // application IDX - maintains most up to date schemas and definitions ensuring chain always has the most recent commit
   async getAppIdx(contract){
+
     const appClient = await this.getAppCeramic()
+
     const appDid = this.associateAppDID(process.env.APP_OWNER_ACCOUNT, contract, appClient)
-    const schemas = this.schemaSetup(process.env.APP_OWNER_ACCOUNT, 'SeedsJWE', 'encrypted dao seeds', contract, appClient, personaSeedsSchema)
-    await Promise.all([appDid, schemas])
-    const appAliases = await this.getAppAliases(contract)
-    const appIdx = new IDX({ ceramic: appClient, aliases: appAliases})
+    const definitions = this.getAlias(process.env.APP_OWNER_ACCOUNT+':Definitions', appClient, definitionsSchema, 'alias definitions', contract)
+    const schemas = this.getAlias(process.env.APP_OWNER_ACCOUNT+':Schemas', appClient, schemaSchema, 'user schemas', contract)
+    const done = await Promise.all([appDid, definitions, schemas])
+    
+    let rootAliases = {
+      definitions: done[1],
+      schemas: done[2]
+    }
+    const appIdx = new IDX({ ceramic: appClient, aliases: rootAliases})
+   
     return appIdx
   }
 
-  async getCurrentUserIdx(account, contract, appIdx, did){
-   
-    let seed = await this.getLocalSeed(account.accountId)
-   
-    if(!seed) {
-      seed = await this.downloadSecret(appIdx, 'SeedsJWE', did)
+  // owner IDX (account currently logged in and for which new Personas are made)
+  async getCurrentUserIdx(account, appIdx, contract, owner, ownerIdx){
     
-    }
-     
+      let seed = await this.getLocalAccountSeed(account.accountId)
       let currentUserCeramicClient = await this.getCeramic(account, seed)
+
+      if(owner != '') {
+      let ownerSeed = await this.getLocalAccountSeed(owner)
+        if(!ownerSeed){
+          ownerIdx = appIdx
+        } else {
+          let ownerClient = await this.getCeramic(owner, ownerSeed)
+          const definitions = await this.getAlias(owner+':Definitions', ownerClient, definitionsSchema, 'alias definitions', contract)
+          const schemas = await this.getAlias(owner+':Schemas', ownerClient, schemaSchema, 'user schemas', contract)
+          let ownerAliases = {
+            definitions: definitions,
+            schemas: schemas
+          }
+          ownerIdx = new IDX({ ceramic: ownerClient, aliases: ownerAliases})
+        }
+      } else {
+        ownerIdx = appIdx
+      }
+      
+      let currentAliases = await this.getAliases(ownerIdx, account.accountId)
+
+      let curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
   
       //initialize aliases if required
-    
-      const schema1 = this.schemaSetup(account.accountId, 'profile', 'user profile data', contract, currentUserCeramicClient, profileSchema)
-      const schema2 = this.schemaSetup(account.accountId, 'accountsKeys', 'user account info', contract, currentUserCeramicClient, accountKeysSchema)
-      await Promise.all([schema1, schema2])
-      
-      let currentAliases = await this.getUsersAliases(account.accountId, contract)
-      const curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
+      const profileAlias = await this.aliasSetup(ownerIdx, account.accountId, 'profile', 'user profile data', profileSchema, currentUserCeramicClient)
+      const accountsKeysAlias = await this.aliasSetup(ownerIdx, account.accountId, 'accountsKeys', 'user account info', accountKeysSchema, currentUserCeramicClient)
+      currentAliases = await this.getAliases(ownerIdx, account.accountId)
+      curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
   
       return curUserIdx
   }
 
-  async getUsersAliases(accountId, contract) {
-
-    let currentAliases = {}
-
-    let definitions = await contract.getDefinitions()
- 
-    let o = 0
-    let profileDef
-    while(o < definitions.length) {
-      let key = definitions[o].split(':')
-      if(key[0] == accountId && key[1] == 'profile'){
-        profileDef = key[2]
-        break
-      }
-      o++
-    }
-
-    let k = 0
-    let accountKeysDef
-    while(k < definitions.length) {
-      let key = definitions[k].split(':')
-      if(key[0] == accountId && key[1] == 'accountsKeys'){
-        accountKeysDef = key[2]
-        break
-      }
-      k++
-    }
-
-    //reconstruct aliases, get profile and accountKeys aliases, and set IDXs
-    try {
-        let allAliases = await contract.getAliases()
-        let i = 0
-        let profileCount = 0
-        let accountsKeysCount = 0
-        while (i < allAliases.length) {
-            let key = allAliases[i].split(':')
-            let alias = {[key[0]]: key[1]}
-            if (alias.profile == profileDef) {
-              currentAliases = {...currentAliases, ...alias}
-              profileCount++
-            }
-            if (alias.accountsKeys == accountKeysDef) {
-              currentAliases = {...currentAliases, ...alias}
-              accountsKeysCount++
-            }
-            if(profileCount == 1 && accountsKeysCount == 1){
-              break
-            }
-            i++
+  async getCurrentUserIdxNoDid (appIdx, contract, account, keyPair, recipientName, owner, ownerIdx) {
+  
+    if(keyPair == undefined){
+    keyPair = KeyPair.fromRandom('ed25519')   
+    const links = get(ACCOUNT_LINKS, [])
+    let c = 0
+    let accountExists
+    while(c < links.length) {
+        if(links[c].accountId == account.accountId){
+            accountExists = true
+            links[c] = { key: keyPair.secretKey, accountId: account.accountId, recipientName: recipientName, owner: owner, keyStored: Date.now() }
+            set(ACCOUNT_LINKS, links)
+            break
+        } else {
+            accountExists = false
         }
-        return currentAliases
-    } catch (err) {
-        console.log('error retrieving aliases', err)
+    c++
     }
-    return {}
-  }
+    if(!accountExists){
+      links.push({ key: keyPair.secretKey, accountId: account.accountId, recipientName: recipientName, owner: owner, keyStored: Date.now() })
+      set(ACCOUNT_LINKS, links)
+    }
+    } else {
+      const links = get(ACCOUNT_LINKS, [])
+      let c = 0
+      let accountExists
+      while(c < links.length) {
+          if(links[c].accountId == account.accountId){
+              accountExists = true
+              links[c] = { key: keyPair.secretKey, accountId: account.accountId, recipientName: recipientName, owner: owner, keyStored: Date.now() }
+              break
+          } else {
+              accountExists = false
+          }
+      c++
+      }
+      if(!accountExists){
+        links.push({ key: keyPair.secretKey, accountId: account.accountId, recipientName: recipientName, owner: owner, keyStored: Date.now() })
+        set(ACCOUNT_LINKS, links)
+      }
+    }
 
-  async getCurrentUserIdxNoDid (appIdx, contract, account, ceramicSeed) {
+    //retrieve seed for newly created account
+    let seed = await this.getLocalAccountSeed(account.accountId)
+
+    // Initiate new User Ceramic Client
+    let newUserCeramicClient = await this.getCeramic(account, seed)
+    
+    if(owner != '') {
+    let ownerSeed = await this.getLocalAccountSeed(owner)
+      if(!ownerSeed){
+        ownerIdx = appIdx
+      } else {
+        let ownerClient = await this.getCeramic(owner, ownerSeed)
+        const definitions = await this.getAlias(owner+':Definitions', ownerClient, definitionsSchema, 'alias definitions', contract)
+        const schemas = await this.getAlias(owner+':Schemas', ownerClient, schemaSchema, 'user schemas', contract)
+       
+        let ownerAliases = {
+          definitions: definitions,
+          schemas: schemas
+        }
+        ownerIdx = new IDX({ ceramic: ownerClient, aliases: ownerAliases})
+      }
+    } else {
+      ownerIdx = appIdx
+    }
    
-    if(ceramicSeed == undefined){
-      const mnemonic = bip39.generateMnemonic()
-      let seed = await bip39.mnemonicToSeed(mnemonic)
-      ceramicSeed = Buffer.from(seed.slice(0, 32))
-    }
-
-    localStorage.setItem('nearprofile:seed:' + account.accountId, ceramicSeed.toString('base64'))
-
-    // Initiate Current User Ceramic Client
-    let currentUserCeramicClient = await this.getCeramic(account, ceramicSeed)
-
-    // Store it's new seed for later retrieval
-    await this.storeSeedSecret(appIdx, ceramicSeed, 'SeedsJWE', currentUserCeramicClient.did.id)
     
-    // Associate current user NEAR account with 3ID and store in contract and cache in local storage
-    await this.associateDID(account.accountId, contract, currentUserCeramicClient)
-    await this.schemaSetup(account.accountId, 'profile', 'user profile data', contract, currentUserCeramicClient, profileSchema)
-    await this.schemaSetup(account.accountId, 'accountsKeys', 'user account info', contract, currentUserCeramicClient, accountKeysSchema)
-    
-    let currentAliases = await this.getUsersAliases(account.accountId, contract)
+    // Associate current user NEAR account with DID and store in contract
+    let associate = this.associateDID(account.accountId, contract, newUserCeramicClient)
+    let profileAlias = await this.aliasSetup(ownerIdx, account.accountId, 'profile', 'user profile data', profileSchema, newUserCeramicClient)
+    let accountsKeysAlias = await this.aliasSetup(ownerIdx, account.accountId, 'accountsKeys', 'user account info', accountKeysSchema, newUserCeramicClient)
+    const done = await Promise.all([associate])
+  
+    let currentAliases = await this.getAliases(ownerIdx, account.accountId)
+    const curUserIdx = new IDX({ ceramic: newUserCeramicClient, aliases: currentAliases})
 
-    const curUserIdx = new IDX({ ceramic: currentUserCeramicClient, aliases: currentAliases})
-      
+    // Store it's new seed/list of accounts for later retrieval
+    const updatedLinks = get(ACCOUNT_LINKS, [])
+    await this.storeKeysSecret(curUserIdx, updatedLinks, 'accountsKeys')
     return curUserIdx
   }
 

@@ -1,10 +1,13 @@
 import { PersistentMap, PersistentSet, env, storage, logging } from 'near-sdk-as'
 
-const registry = new PersistentMap<string, string>('reg')
+const registry = new PersistentMap<string, string>('r')
 const schemas = new PersistentSet<string>('s')
 const definitions = new PersistentSet<string>('d')
 const aliases = new PersistentSet<string>('a')
 
+const allAliases = new PersistentMap<string, string>('l')
+
+//DID REGISTRY
 
 export function getDID(accountId: string) : string {
   assert(env.isValidAccountID(accountId), 'not a valid near account')
@@ -24,7 +27,28 @@ export function putDID(accountId: string, did: string): bool {
   assert(env.isValidAccountID(accountId), 'not a valid near account')
   assert(!registry.contains(accountId), 'did already registered for this near account')
   registry.set(accountId, did)
-  logging.log('added ' + accountId + ':' + did)
+  logging.log('registered DID' + accountId + ':' + did)
+  return true
+}
+
+// NEW ALIAS TRACKING
+export function retrieveAlias(alias: string) : string {
+  assert(allAliases.contains(alias), 'alias does not exist')
+  return allAliases.getSome(alias)
+}
+
+export function hasAlias(alias: string) : bool {
+  if(allAliases.contains(alias)){
+    return true
+  } else {
+    return false
+  }
+}
+
+export function storeAlias(alias: string, definition: string): bool {
+  assert(!allAliases.contains(alias), 'alias already exists')
+  allAliases.set(alias, definition)
+  logging.log('registered alias' + alias + ':' + definition)
   return true
 }
 

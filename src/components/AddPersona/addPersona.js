@@ -31,6 +31,7 @@ export default function AddPersonaForm(props) {
     const [finished, setFinished] = useState(true)
     const [id, setId] = useState('')
     const [amount, setAmount] = useState('')
+    const [clicked, setClicked] = useState(false)
 
     const { register, handleSubmit, watch, errors, transform } = useForm()
 
@@ -122,10 +123,10 @@ export default function AddPersonaForm(props) {
               {!finished ? <LinearProgress className={classes.progress} style={{marginBottom: '25px' }}/> : (
               <DialogActions>
               <Button
-                disabled={state.app.accountTaken}
+                disabled={state.app.accountTaken || clicked}
                 variant="contained"
                 color="primary"
-                onClick={() => state.wallet.fundAccount(amount.toString(), id, qs('#personaName').value, state.accountId)}>
+                onClick={() => {state.wallet.fundAccount(amount.toString(), id, qs('#personaName').value, state.accountId); setFinished(false)}}>
                 CREATE PERSONA
               </Button>
               

@@ -5,7 +5,7 @@ import PersonaCard from '../components/PersonaCard/personaCard'
 
 const forExample = `(for example: "bestie.near" or "squad.near")`
 const baseUrl = window.location.href.substr(0, window.location.href.lastIndexOf('/'))
-const getLink = (accountId, key, wallet) => `?accountId=${accountId}&key=${key}&from=${wallet.getAccountId()}`
+const getLink = (accountId, key, wallet, recipientName, owner) => `?accountId=${accountId}&key=${key}&from=${wallet.getAccountId()}&recipientName=${recipientName}&owner=${owner}`
 
 // Material UI
 import { makeStyles } from '@material-ui/core/styles'
@@ -53,8 +53,8 @@ export const Giver = ({ state, update, dispatch }) => {
         async function fetchData() {
             let i = 0
             let countClaim = 0
-            while (i < state.claimed.length ){
-                if(state.claimed[i].owner == state.accountId){
+            while (i < claimed.length ){
+                if(claimed[i].owner == accountId){
                     countClaim++
                 }
                 i++
@@ -63,8 +63,8 @@ export const Giver = ({ state, update, dispatch }) => {
 
             let j = 0
             let countLinks = 0
-            while (j < state.links.length ){
-                if(state.links[j].owner == state.accountId){
+            while (j < links.length ){
+                if(links[j].owner == accountId){
                     countLinks++
                 }
                 j++
@@ -92,14 +92,14 @@ export const Giver = ({ state, update, dispatch }) => {
         <Grid container alignItems="center" justify="space-evenly" spacing={2} style={{marginBottom: '20px'}}>
             {countOfLinks > 0 ? 
                 (<> <Grid item xs={12} sm={12} md={12} lg={12} xl={12} >
-                        <Typography variant="h5" style={{marginBottom: '20px'}}>Ready To Claim</Typography>
+                        <Typography variant="h5" style={{marginBottom: '20px'}}>Reserved Personas</Typography>
                     </Grid>
                     {links.filter(person => person.owner == accountId).map(({ key, accountId, recipientName = '', owner }) =>
                         <PersonaCard
                             key={key}
                             accountId={accountId}
                             owner={owner}
-                            link={getLink(accountId, key, wallet)}
+                            link={getLink(accountId, key, wallet, recipientName, owner)}
                             state={state}
                             handleEditPersonaClick={handleEditPersonaClick}
                             />
@@ -122,7 +122,7 @@ export const Giver = ({ state, update, dispatch }) => {
             { countOfClaims > 0 ? 
                 (<>
                     <Grid item xs={12} sm={12} md={12} lg={12} xl={12} >
-                        <Typography variant="h5" style={{marginBottom: '20px'}}>Claimed</Typography>
+                        <Typography variant="h5" style={{marginBottom: '20px'}}>Claimed Personas</Typography>
                     </Grid>
                 {claimed.filter(person => person.owner == accountId).map(({ key, accountId, recipientName = '', owner }) =>
                     <PersonaCard
