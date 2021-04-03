@@ -5,6 +5,8 @@
     "author": "Aaron Luhning",
     "license": "ISC",
     "dependencies": {
+        "@azure/identity": "^1.2.5",
+        "@azure/keyvault-secrets": "^4.1.0",
         "@ceramicnetwork/http-client": "^0.10.1",
         "@ceramicstudio/idx": "^0.9.0",
         "@ceramicstudio/idx-tools": "^0.8.0",

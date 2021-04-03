@@ -5,6 +5,9 @@ import { IDX } from '@ceramicstudio/idx'
 import { createDefinition, publishSchema } from '@ceramicstudio/idx-tools'
 import { Ed25519Provider } from 'key-did-provider-ed25519'
 
+const { DefaultAzureCredential } = require("@azure/identity");
+const { SecretClient } = require("@azure/keyvault-secrets");
+
 // schemas
 import { profileSchema } from '../schemas/profile'
 import { accountKeysSchema } from '../schemas/accountKeys'
@@ -12,7 +15,7 @@ import { definitionsSchema } from '../schemas/definitions'
 import { schemaSchema } from '../schemas/schemas'
 
 import { config } from '../state/config'
-const axios = require('axios').default;
+const readline = erquire('readline')
 
 export const {
     FUNDING_DATA, FUNDING_DATA_BACKUP, ACCOUNT_LINKS, GAS, SEED_PHRASE_LOCAL_COPY,
@@ -34,7 +37,30 @@ const {
   }
 } = nearApiJs
 
+function askQuestion(query) {
+  const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+  });
+
+  return new Promise(resolve => rl.question(query, ans => {
+      rl.close();
+      resolve(ans);
+  }))
+}
+
 class Ceramic {
+
+async authorize(secret) {
+  const keyVaultName = process.env["KEY_VAULT_NAME"];
+  const KVUri = "https://" + keyVaultName + ".vault.azure.net";
+
+  const credential = new DefaultAzureCredential();
+  const client = new SecretClient(KVUri, credential);
+
+  const retrievedSecret = await client.getSecret(secret)
+  return retrievedSecret
+}
 
   async storeSeedSecret(idx, payload, key, did) {
     console.log('did seed secret', did)
@@ -131,7 +157,7 @@ class Ceramic {
   }
 
   async getAppCeramic() {
-    let retrieveSeed = await axios.get('https://vitalpointkeys.vault.azure.net/secrets/APPSEED/08f977285e6c48cb9ed5c168fe5de206')
+    let retrieveSeed = await this.authorize('APPSEED')
     console.log('retrieveseed', retrieveSeed)
     const seed = Buffer.from(retrieveSeed.slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
@@ -197,8 +223,9 @@ class Ceramic {
   async useDidContractFullAccessKey() {    
 
     // Step 1:  get the keypair from the contract's full access private key
-    let string = await axios.get('https://vitalpointkeys.vault.azure.net/secrets/DIDCONTRACTPRIVKEY/e416bf5c9e9141499b2a7439227a7cc4')
-    let keyPair = KeyPair.fromString(string)
+    let retrieveString = await this.authorize('DIDSCONTRACTPRIVKEY')
+    console.log('retrieveString', retrieveString)
+    let keyPair = KeyPair.fromString(retrieveString)
 
     // Step 2:  load up an inMemorySigner using the keyPair for the account
     let signer = await InMemorySigner.fromKeyPair(networkId, didRegistryContractName, keyPair)
