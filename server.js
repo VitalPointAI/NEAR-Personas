@@ -7,9 +7,10 @@ const app = express();
 // Azure Key Vault service to use
 const { KeyClient } = require("@azure/keyvault-keys");
 
+
 // Azure authentication library to access Azure Key Vault
 const { DefaultAzureCredential } = require("@azure/identity");
-
+const { SecretClient } = require("@azure/keyvault-secrets");
 // Azure SDK clients accept the credential as a parameter
 const credential = new DefaultAzureCredential();
 console.log('credential', credential)
@@ -17,7 +18,7 @@ let vaultUrl = 'https://vitalpointkeys.vault.azure.net/'
 console.log('vault', vaultUrl)
 
 // Create authenticated client
-const client = new KeyClient(vaultUrl, credential);
+const client = new SecretClient(vaultUrl, credential);
 console.log('client', client)
 // Use service from authenticated client
 
@@ -48,7 +49,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.get('/appseed', async (req, res) => {
   let getResult
   try{
-  const getResult = await client.getKey("APPSEED")
+  const getResult = await client.getSecret("APPSEED")
   console.log('getResult', getResult)
   } catch (err) {
     console.log('error retrieving secret', err)
