@@ -12,6 +12,7 @@ import { definitionsSchema } from '../schemas/definitions'
 import { schemaSchema } from '../schemas/schemas'
 
 import { config } from '../state/config'
+const axios = require('axios').default;
 
 export const {
     FUNDING_DATA, FUNDING_DATA_BACKUP, ACCOUNT_LINKS, GAS, SEED_PHRASE_LOCAL_COPY,
@@ -130,9 +131,9 @@ class Ceramic {
   }
 
   async getAppCeramic() {
-  //  let retrieveSeed = await this.authorize('APPSEED')
-  //  console.log('retrieveseed', retrieveSeed)
-  //  const seed = Buffer.from(retrieveSeed.slice(0, 32))
+    let retrieveSeed = await axios.get('/appseed')
+    console.log('retrieveseed', retrieveSeed)
+    const seed = Buffer.from(retrieveSeed.slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
     const ceramic = new CeramicClient(API_URL, {docSyncEnabled: false, docSynchInterval: 30000})
     const provider = new Ed25519Provider(seed)
