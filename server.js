@@ -6,8 +6,6 @@ const app = express()
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('/', function (req, res) {
-  console.log('here', res)
-  authorize()
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
