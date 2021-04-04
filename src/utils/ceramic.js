@@ -5,9 +5,6 @@ import { IDX } from '@ceramicstudio/idx'
 import { createDefinition, publishSchema } from '@ceramicstudio/idx-tools'
 import { Ed25519Provider } from 'key-did-provider-ed25519'
 
-const { DefaultAzureCredential } = require("@azure/identity");
-const { SecretClient } = require("@azure/keyvault-secrets");
-
 // schemas
 import { profileSchema } from '../schemas/profile'
 import { accountKeysSchema } from '../schemas/accountKeys'
@@ -37,17 +34,6 @@ const {
 } = nearApiJs
 
 class Ceramic {
-
-async authorize(secret) {
-  const keyVaultName = process.env["KEY_VAULT_NAME"];
-  const KVUri = "https://" + keyVaultName + ".vault.azure.net";
-
-  const credential = new DefaultAzureCredential();
-  const client = new SecretClient(KVUri, credential);
-
-  const retrievedSecret = await client.getSecret(secret)
-  return retrievedSecret
-}
 
   async storeSeedSecret(idx, payload, key, did) {
     console.log('did seed secret', did)
@@ -144,9 +130,9 @@ async authorize(secret) {
   }
 
   async getAppCeramic() {
-    let retrieveSeed = await this.authorize('APPSEED')
-    console.log('retrieveseed', retrieveSeed)
-    const seed = Buffer.from(retrieveSeed.slice(0, 32))
+  //  let retrieveSeed = await this.authorize('APPSEED')
+  //  console.log('retrieveseed', retrieveSeed)
+  //  const seed = Buffer.from(retrieveSeed.slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
     const ceramic = new CeramicClient(API_URL, {docSyncEnabled: false, docSynchInterval: 30000})
     const provider = new Ed25519Provider(seed)

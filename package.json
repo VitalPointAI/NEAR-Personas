@@ -6,12 +6,15 @@
     "license": "ISC",
     "dependencies": {
         "@azure/identity": "^1.2.5",
+        "@azure/keyvault-keys": "^4.1.0",
         "@azure/keyvault-secrets": "^4.1.0",
         "@ceramicnetwork/http-client": "^0.10.1",
         "@ceramicstudio/idx": "^0.9.0",
         "@ceramicstudio/idx-tools": "^0.8.0",
+        "@google-cloud/secret-manager": "^3.6.0",
         "@material-ui/core": "^4.11.3",
         "@material-ui/icons": "^4.11.2",
+        "@types/node": "^14.14.37",
         "animejs": "^3.2.1",
         "axios": "^0.21.1",
         "bip39": "^3.0.2",
@@ -35,7 +38,7 @@
         "@babel/preset-env": "^7.13.10",
         "@babel/preset-react": "^7.12.13",
         "babel-plugin-react-html-attrs": "^3.0.5",
-        "parcel": "^2.0.0-beta.1",
+        "parcel": "^2.0.0-beta.2",
         "rimraf": "^3.0.2"
     },
     "resolutions": {
@@ -46,7 +49,7 @@
         "node": "14.15.4"
     },
     "browserslist": [
-        "last 2 Chrome versions"
+        "last 1 Chrome versions"
     ],
     "scripts": {
         "deploy:testnet": "npm run build && gh-pages -d dist",
@@ -57,7 +60,7 @@
         "clean": "rimraf ./dist && rimraf .parcel-cache",
         "fix": "eslint src/ --fix",
         "startup": "npm run clean && env-cmd -f ./.env parcel src/index.html --no-hmr --public-url ./ --no-source-maps && npm run start",
-        "startup1": "parcel src/index.html --no-source-maps --no-hmr",
+        "startup1": "parcel src/index.html --no-source-maps --no-hmr --target node",
         "start": "node server.js"
     }
 }

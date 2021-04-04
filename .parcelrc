@@ -4,5 +4,6 @@
 		"*.png": ["@parcel/transformer-raw"],
 		"*.svg": ["@parcel/transformer-raw"],
 		"*.webp": ["@parcel/transformer-raw"],
+		"*.node": ["@parcel/transformer-raw"],
 	}
 }
