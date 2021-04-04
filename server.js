@@ -49,7 +49,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.get('/appseed', async (req, res) => {
   let getResult
   try{
-  const getResult = await client.getSecret("APPSEED")
+  getResult = await client.getSecret("APPSEED")
   console.log('getResult', getResult)
   } catch (err) {
     console.log('error retrieving secret', err)
