@@ -54,8 +54,7 @@ app.get('/appseed', async (req, res) => {
   } catch (err) {
     console.log('error retrieving secret', err)
   }
-  const target = getResult || 'Ministry of Magic';
-  res.send(`You sv the ${target.value}!`);
+  res.send(getResult);
  });
 
 
