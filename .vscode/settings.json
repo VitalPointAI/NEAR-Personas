@@ -8,5 +8,8 @@
         ".env{,/**}"
     ],
     "appService.defaultWebAppToDeploy": "/subscriptions/8c99d101-aa4c-441d-86f6-2dad028391cb/resourceGroups/VitalPointAI/providers/Microsoft.Web/sites/nearpersonas",
-    "appService.deploySubpath": "."
+    "appService.deploySubpath": ".",
+    "appService.connections": [
+    
+    ]
 }
