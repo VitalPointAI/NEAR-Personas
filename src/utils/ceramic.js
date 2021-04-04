@@ -132,8 +132,7 @@ class Ceramic {
 
   async getAppCeramic() {
     let retrieveSeed = await axios.get('/appseed')
-    console.log('retrieveseed', retrieveSeed)
-    const seed = Buffer.from(retrieveSeed.slice(0, 32))
+    const seed = Buffer.from((retrieveSeed.data.value).slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
     const ceramic = new CeramicClient(API_URL, {docSyncEnabled: false, docSynchInterval: 30000})
     const provider = new Ed25519Provider(seed)
@@ -197,9 +196,8 @@ class Ceramic {
   async useDidContractFullAccessKey() {    
 
     // Step 1:  get the keypair from the contract's full access private key
-    let retrieveString = await this.authorize('DIDSCONTRACTPRIVKEY')
-    console.log('retrieveString', retrieveString)
-    let keyPair = KeyPair.fromString(retrieveString)
+    let retrieveKey = await axios.get('/didkey')
+    let keyPair = KeyPair.fromString(retrieveKey.data.value)
 
     // Step 2:  load up an inMemorySigner using the keyPair for the account
     let signer = await InMemorySigner.fromKeyPair(networkId, didRegistryContractName, keyPair)
