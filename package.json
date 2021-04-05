@@ -56,7 +56,7 @@
         "clean": "rimraf ./dist && rimraf .parcel-cache",
         "fix": "eslint src/ --fix",
         "startup": "npm run clean && env-cmd -f ./.env parcel src/index.html --no-hmr --public-url ./ --no-source-maps && npm run start",
-        "startup1": "parcel src/index.html --no-source-maps --no-hmr --target node",
+        "startup1": "parcel src/index.html --no-source-maps --no-hmr",
         "start": "node server.js"
     }
 }

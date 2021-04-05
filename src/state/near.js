@@ -108,10 +108,10 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     // ********* Initiate Dids Registry Contract ************
 
     const accountId = wallet.account().accountId
-    
-    const account = new nearAPI.Account(near.connection, accountId)
+  
+    const connection = new nearAPI.WalletConnection(near)
    
-    const didRegistryContract = await ceramic.initiateDidRegistryContract(account)
+    const didRegistryContract = await ceramic.initiateDidRegistryContract(connection.account())
 
     // ******** IDX Initialization *********
 

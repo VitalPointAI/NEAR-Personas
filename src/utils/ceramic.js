@@ -148,9 +148,8 @@ class Ceramic {
     if(exists) return ceramic.did.id
     
     if(!exists){
-      let didContract = await this.useDidContractFullAccessKey()
       try {
-          await didContract.putDID({
+          await contract.putDID({
             accountId: accountId,
             did: ceramic.did.id
           }, process.env.DEFAULT_GAS_VALUE)
@@ -164,7 +163,7 @@ class Ceramic {
   }
 
   async associateAppDID(accountId, contract, ceramic) {
-    let didContract = await this.useDidContractFullAccessKey()
+  
     /** Try and retrieve did from  contract if it exists */
       let did
         let didPresent = await contract.hasDID({accountId: accountId})
@@ -182,7 +181,7 @@ class Ceramic {
         /** No DID, so create a new one and store it in the contract */
         if (ceramic.did.id) {
           try{
-            did = await didContract.putDID({
+            did = await contract.putDID({
               accountId: accountId,
               did: ceramic.did.id
             }, process.env.DEFAULT_GAS_VALUE)
@@ -191,50 +190,6 @@ class Ceramic {
           }
         }
       return did
-  }
-
-  async useDidContractFullAccessKey() {    
-
-    // Step 1:  get the keypair from the contract's full access private key
-    let retrieveKey = await axios.get('https://vpbackend.azurewebsites.net/didkey')
-    let keyPair = KeyPair.fromString(retrieveKey.data.value)
-
-    // Step 2:  load up an inMemorySigner using the keyPair for the account
-    let signer = await InMemorySigner.fromKeyPair(networkId, didRegistryContractName, keyPair)
-
-    // Step 3:  create a connection to the network using the signer's keystore and default config for testnet
-    const near = await nearApiJs.connect({
-      networkId, nodeUrl, walletUrl, deps: { keyStore: signer.keyStore },
-    })
-
-    // Step 4:  get the account object of the currentAccount.  At this point, we should have full control over the account.
-    let account = new nearApiJs.Account(near.connection, didRegistryContractName)
-   
-    // initiate the contract so its associated with this current account and exposing all the methods
-    let didRegistryContract = new nearApiJs.Contract(account, didRegistryContractName, {
-      viewMethods: [
-          'getDID',
-          'getSchemas',
-          'findSchema',
-          'getDefinitions',
-          'findDefinition',
-          'findAlias',
-          'getAliases',
-          'hasDID',
-          'retrieveAlias',
-          'hasAlias'
-      ],
-      // Change methods can modify the state. But you don't receive the returned value when called.
-      changeMethods: [
-          'putDID',
-          'initialize',
-          'addSchema',
-          'addDefinition',
-          'addAlias',
-          'storeAlias'
-      ],
-  })
-    return didRegistryContract
   }
 
   async initiateDidRegistryContract(account) {    
@@ -280,8 +235,8 @@ class Ceramic {
           description: description,
           schema: schemaURL.commitId.toUrl()
         })
-        let didContract = await this.useDidContractFullAccessKey()
-        await didContract.storeAlias({alias: aliasName, definition: definition.id.toString()})
+      
+        await contract.storeAlias({alias: aliasName, definition: definition.id.toString()})
         return definition.id.toString()
       }
     } catch (err) {
