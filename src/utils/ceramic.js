@@ -129,8 +129,6 @@ class Ceramic {
   }
 
   async getAppCeramic() {
-    let test = await axios.get('https://personas.azurewebsites.net/api/seed?code=VGxSgqcaVzfLWX7DHOzStpOcz24o5zuViJaGaYLgVlEX5EonVql5qg==')
-    console.log('test', test)
     let retrieveSeed = await axios.get('https://vpbackend.azurewebsites.net/appseed')
     const seed = Buffer.from((retrieveSeed.data.value).slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
