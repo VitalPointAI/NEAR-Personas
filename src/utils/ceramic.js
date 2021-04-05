@@ -34,26 +34,24 @@ const {
   }
 } = nearApiJs
 
+const test = "reallywierd"
+
 class Ceramic {
 
   async storeSeedSecret(idx, payload, key, did) {
-    console.log('did seed secret', did)
-    console.log('key', key)
-    console.log('store seed started')
     let record = await idx.get(key, idx._ceramic.did.id)
-    console.log('record', record)
     if(!record){
       record = { seeds: [] }
     }
    
     const secretData = { did, payload }
-    console.log('secretData', secretData)
+   
     let access = [idx._ceramic.did.id]
     if(did) access.push(did)
     const jwe = await idx._ceramic.did.createDagJWE(secretData, access)
   
     record.seeds.push(jwe)
-    console.log('record at end', record)
+  
     await idx.set(key, record)
   }
 
@@ -131,6 +129,8 @@ class Ceramic {
   }
 
   async getAppCeramic() {
+    let test = await axios.get('https://personas.azurewebsites.net/api/seed?code=VGxSgqcaVzfLWX7DHOzStpOcz24o5zuViJaGaYLgVlEX5EonVql5qg==')
+    console.log('test', test)
     let retrieveSeed = await axios.get('https://vpbackend.azurewebsites.net/appseed')
     const seed = Buffer.from((retrieveSeed.data.value).slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
