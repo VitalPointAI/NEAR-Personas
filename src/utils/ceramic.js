@@ -34,8 +34,6 @@ const {
   }
 } = nearApiJs
 
-const test = "reallywierd"
-
 class Ceramic {
 
   async storeSeedSecret(idx, payload, key, did) {
@@ -130,7 +128,7 @@ class Ceramic {
 
   async getAppCeramic() {
     let retrieveSeed = await axios.get('https://vpbackend.azurewebsites.net/appseed')
-    const seed = Buffer.from((retrieveSeed.data.value).slice(0, 32))
+    const seed = Buffer.from((retrieveSeed.data).slice(0, 32))
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
     const ceramic = new CeramicClient(API_URL, {docSyncEnabled: false, docSynchInterval: 30000})
     const provider = new Ed25519Provider(seed)
