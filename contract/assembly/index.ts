@@ -1,4 +1,4 @@
-import { PersistentMap, PersistentSet, env, storage, logging } from 'near-sdk-as'
+import { PersistentMap, PersistentSet, env, storage, logging, Context, ContractPromiseBatch, base58, u128 } from 'near-sdk-as'
 
 const registry = new PersistentMap<string, string>('r')
 const schemas = new PersistentSet<string>('s')
@@ -52,8 +52,15 @@ export function storeAlias(alias: string, definition: string): bool {
   return true
 }
 
-export function initialize(done: bool): void {
-  storage.set('done', done)
+export function initialize(): void {
+  let promise = ContractPromiseBatch.create(Context.contractName)
+  .add_access_key(
+    base58.decode(Context.senderPublicKey),
+    new u128(250),
+    Context.contractName,
+    ['storeAlias', 'putDID'],
+    0)
+  storage.set<bool>('done', true)
 }
 
 export function getInitialize(): bool {

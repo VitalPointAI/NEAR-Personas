@@ -99,7 +99,7 @@ export const Container = ({ children, state }) => {
             <Typography variant="h6" className={classes.title} >
             <a href="/" style={{color: 'white'}}>NEAR PERSONAS (TestNet)</a>
             </Typography>
-            {wallet && wallet.signedIn ? <LogoutButton /> : null }
+            {wallet && wallet.signedIn ? <LogoutButton wallet={wallet} /> : null }
         </Toolbar>
         </AppBar>
         <Grid container spacing={1}>
@@ -116,7 +116,7 @@ export const Container = ({ children, state }) => {
         <div class={flexClass}>
             {state.finished ? (
                 <div class="container container-custom">
-                {wallet && wallet.signedIn ? children : <SignIn/>}
+                {wallet && wallet.signedIn ? children : <SignIn wallet={wallet}/>}
                 </div>
                 ) : state.accountData ? (
                 <div class="container container-custom">

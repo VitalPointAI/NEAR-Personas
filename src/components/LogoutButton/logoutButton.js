@@ -1,6 +1,5 @@
 import React from 'react'
 import { makeStyles } from '@material-ui/core/styles'
-import { logout } from '../../state/near'
 
 // Material UI components
 import Button from '@material-ui/core/Button'
@@ -22,7 +21,7 @@ const useStyles = makeStyles((theme) => ({
 export default function LogoutButton(props) {
 
     const classes = useStyles()
-    const { accountId, balance } = props
+    const { accountId, balance, wallet } = props
 
     return (
         <> 
@@ -31,7 +30,7 @@ export default function LogoutButton(props) {
         color="primary"
         className={classes.button}
         startIcon={<LockTwoToneIcon />}
-        onClick={logout}
+        onClick={wallet.signOut}
         >Sign Out</Button>
            
       </>

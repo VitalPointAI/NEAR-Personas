@@ -1,5 +1,4 @@
 import React from 'react'
-import { login } from '../../state/near'
 import { makeStyles } from '@material-ui/core/styles'
 
 // Material UI Components
@@ -31,7 +30,11 @@ const useStyles = makeStyles((theme) => ({
       },
     }));
 
-export default function SignIn() {
+export default function SignIn(props) {
+
+  const {
+    wallet
+  } = props
 
 const classes = useStyles()
 
@@ -57,7 +60,7 @@ const classes = useStyles()
                       color="primary"
                       className={classes.button}
                       startIcon={<LockOpenTwoToneIcon />}
-                      onClick={login}
+                      onClick={wallet.signIn}
                     >Sign In</Button>
                     </CardContent>
                   </Card>

@@ -107,11 +107,8 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 
     // ********* Initiate Dids Registry Contract ************
 
-    const accountId = wallet.account().accountId
-  
-    const connection = new nearAPI.WalletConnection(near)
-    const account = connection.account()
-   
+    const account = wallet.account()
+    const accountId = account.accountId
     const didRegistryContract = await ceramic.initiateDidRegistryContract(account)
 
     // ******** IDX Initialization *********
@@ -200,23 +197,6 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     finished = true
 
     update('', { near, wallet, links, claimed, finished })
-}
-
-export async function login() {
-    const near = await nearAPI.connect({
-        networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
-    });
-    const connection = new nearAPI.WalletConnection(near)
-    connection.requestSignIn(contractName, 'Near Personas')
-}
-
-export async function logout() {
-    const near = await nearAPI.connect({
-        networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
-    });
-    const connection = new nearAPI.WalletConnection(near)
-    connection.signOut()
-    window.location.replace(window.location.origin)
 }
 
 export const unclaimLink = (keyToFind) => async ({ update }) => {

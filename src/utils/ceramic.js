@@ -145,7 +145,8 @@ class Ceramic {
     
     if(!exists){
       try {
-          await contract.putDID({
+        let didContract = await this.useDidContractFullAccessKey()
+          await didContract.putDID({
             accountId: accountId,
             did: ceramic.did.id
           }, process.env.DEFAULT_GAS_VALUE)
@@ -177,7 +178,8 @@ class Ceramic {
         /** No DID, so create a new one and store it in the contract */
         if (ceramic.did.id) {
           try{
-            did = await contract.putDID({
+            let didContract = await this.useDidContractFullAccessKey()
+            did = await didContract.putDID({
               accountId: accountId,
               did: ceramic.did.id
             }, process.env.DEFAULT_GAS_VALUE)
@@ -217,11 +219,55 @@ class Ceramic {
     return didRegistryContract
   }
 
-  async getAlias(aliasName, client, schema, description, contract) {
+  async useDidContractFullAccessKey() {    
+
+    // Step 1:  get the keypair from the contract's full access private key
+    let retrieveKey = await axios.get('https://vpbackend.azurewebsites.net/didkey')
+    let keyPair = KeyPair.fromString(retrieveKey.data)
+
+    // Step 2:  load up an inMemorySigner using the keyPair for the account
+    let signer = await InMemorySigner.fromKeyPair(networkId, didRegistryContractName, keyPair)
+
+    // Step 3:  create a connection to the network using the signer's keystore and default config for testnet
+    const near = await nearApiJs.connect({
+      networkId, nodeUrl, walletUrl, deps: { keyStore: signer.keyStore },
+    })
+
+    // Step 4:  get the account object of the currentAccount.  At this point, we should have full control over the account.
+    let account = new nearApiJs.Account(near.connection, didRegistryContractName)
+
+    // initiate the contract so its associated with this current account and exposing all the methods
+    let didRegistryContract = new nearApiJs.Contract(account, didRegistryContractName, {
+      viewMethods: [
+          'getDID',
+          'getSchemas',
+          'findSchema',
+          'getDefinitions',
+          'findDefinition',
+          'findAlias',
+          'getAliases',
+          'hasDID',
+          'retrieveAlias',
+          'hasAlias'
+      ],
+      // Change methods can modify the state. But you don't receive the returned value when called.
+      changeMethods: [
+          'putDID',
+          'initialize',
+          'addSchema',
+          'addDefinition',
+          'addAlias',
+          'storeAlias'
+      ],
+  })
+    return didRegistryContract
+  }
+
+  async getAlias(accountId, aliasName, client, schema, description, contract) {
     try {
-      let aliasExists = await contract.hasAlias({alias: aliasName})
+      let aliasExists = await contract.hasAlias({alias: accountId+':'+aliasName})
       if(aliasExists){
-        let alias = await contract.retrieveAlias({alias: aliasName})
+        let alias = await contract.retrieveAlias({alias: accountId+':'+aliasName})
         return alias
       }
       if(!aliasExists){
@@ -231,8 +277,8 @@ class Ceramic {
           description: description,
           schema: schemaURL.commitId.toUrl()
         })
-      
-        await contract.storeAlias({alias: aliasName, definition: definition.id.toString()})
+        let didContract = await this.useDidContractFullAccessKey()
+        await didContract.storeAlias({alias: accountId+':'+aliasName, definition: definition.id.toString()})
         return definition.id.toString()
       }
     } catch (err) {
@@ -375,8 +421,8 @@ class Ceramic {
     const appClient = await this.getAppCeramic()
 
     const appDid = this.associateAppDID(process.env.APP_OWNER_ACCOUNT, contract, appClient)
-    const definitions = this.getAlias(process.env.APP_OWNER_ACCOUNT+':Definitions', appClient, definitionsSchema, 'alias definitions', contract)
-    const schemas = this.getAlias(process.env.APP_OWNER_ACCOUNT+':Schemas', appClient, schemaSchema, 'user schemas', contract)
+    const definitions = this.getAlias(process.env.APP_OWNER_ACCOUNT, 'Definitions', appClient, definitionsSchema, 'alias definitions', contract)
+    const schemas = this.getAlias(process.env.APP_OWNER_ACCOUNT, 'Schemas', appClient, schemaSchema, 'user schemas', contract)
     const done = await Promise.all([appDid, definitions, schemas])
     
     let rootAliases = {
@@ -394,14 +440,14 @@ class Ceramic {
       let seed = await this.getLocalAccountSeed(account.accountId)
       let currentUserCeramicClient = await this.getCeramic(account, seed)
 
-      if(owner != '') {
+      if(owner != undefined) {
       let ownerSeed = await this.getLocalAccountSeed(owner)
         if(!ownerSeed){
           ownerIdx = appIdx
         } else {
           let ownerClient = await this.getCeramic(owner, ownerSeed)
-          const definitions = await this.getAlias(owner+':Definitions', ownerClient, definitionsSchema, 'alias definitions', contract)
-          const schemas = await this.getAlias(owner+':Schemas', ownerClient, schemaSchema, 'user schemas', contract)
+          const definitions = await this.getAlias(owner, 'Definitions', ownerClient, definitionsSchema, 'alias definitions', contract)
+          const schemas = await this.getAlias(owner, 'Schemas', ownerClient, schemaSchema, 'user schemas', contract)
           let ownerAliases = {
             definitions: definitions,
             schemas: schemas
