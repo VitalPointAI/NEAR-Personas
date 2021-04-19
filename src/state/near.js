@@ -139,7 +139,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
             }
         b++
         }
-        console.log('yes did owner', owner)
+       
         if(owner != undefined){
             const ownerAccount = new nearAPI.Account(near.connection, owner)
             const ownerIdx = await ceramic.getCurrentUserIdx(ownerAccount, appIdx, didRegistryContract, owner)

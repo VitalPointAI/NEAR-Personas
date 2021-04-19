@@ -65,10 +65,10 @@ export default function Persona(props) {
   
         async function fetchData() {
             if(state) {
-                console.log('state', state)
+             
                 if (state.curUserIdx){
                     let result = await state.curUserIdx.get('profile', state.curUserIdx.id)
-                    console.log('curuserIdx p', state.curUserIdx)
+                  
                 
                     if(result){
                         result.avatar ? setAvatar(result.avatar) : setAvatar(imageName)

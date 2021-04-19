@@ -143,7 +143,7 @@ async makeSeed(account){
 }
 
   async getCeramic(account, seed) {
-    console.log('seed', seed)
+  
     if(seed == false || seed == undefined) {
       seed = await this.getSeed(account)
       if (seed == undefined || seed == false){

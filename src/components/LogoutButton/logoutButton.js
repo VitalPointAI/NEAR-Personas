@@ -23,7 +23,7 @@ export default function LogoutButton(props) {
 
     const classes = useStyles()
     const { accountId, balance, wallet } = props
-console.log('wallet', wallet)
+
     return (
         <> 
         <Button
