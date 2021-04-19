@@ -98,8 +98,11 @@ class Ceramic {
 
   async getSeed(account) {
     const secretKey = localStorage.getItem('nearprofile:seed:'+account.accountId)
-    let seed = Buffer.from(secretKey.slice(0, 32))
-    return seed
+    if(secretKey != undefined){
+      let seed = Buffer.from(secretKey.slice(0, 32))
+      return seed
+    }
+    return false
   }
 
   async getLocalAccountSeed(accountId){
@@ -115,9 +118,38 @@ class Ceramic {
     return false
   }
 
+async makeSeed(account){
+    let keyPair = KeyPair.fromRandom('ed25519')
+    let recipientName = ''
+    let owner = ''
+    const links = get(ACCOUNT_LINKS, [])
+    let c = 0
+    let accountExists
+    while(c < links.length) {
+        if(links[c].accountId == account.accountId){
+            accountExists = true
+            links[c] = { key: keyPair.secretKey, accountId: account.accountId, recipientName: recipientName, owner: owner, keyStored: Date.now() }
+            set(ACCOUNT_LINKS, links)
+            break
+        } else {
+            accountExists = false
+        }
+    c++
+    }
+    if(!accountExists){
+      links.push({ key: keyPair.secretKey, accountId: account.accountId, recipientName: recipientName, owner: owner, keyStored: Date.now() })
+      set(ACCOUNT_LINKS, links)
+    }
+}
+
   async getCeramic(account, seed) {
-    if(seed == undefined) {
+    console.log('seed', seed)
+    if(seed == false || seed == undefined) {
       seed = await this.getSeed(account)
+      if (seed == undefined || seed == false){
+        await this.makeSeed(account)
+        seed = await this.getLocalAccountSeed(account.accountId)
+      }
     }
     const API_URL = 'https://ceramic-clay.3boxlabs.com'
     const ceramic = new CeramicClient(API_URL, {cacheDocCommits: true, docSyncEnabled: false, docSynchInterval: 30000})

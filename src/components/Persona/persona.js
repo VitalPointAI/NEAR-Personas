@@ -64,17 +64,20 @@ export default function Persona(props) {
         () => {
   
         async function fetchData() {
-            
-            
-            let result = await state.curUserIdx.get('profile', state.curUserIdx.id)
-            if(result){
-            result.avatar ? setAvatar(result.avatar) : setAvatar(imageName)
+            if(state) {
+                console.log('state', state)
+                if (state.curUserIdx){
+                    let result = await state.curUserIdx.get('profile', state.curUserIdx.id)
+                    console.log('curuserIdx p', state.curUserIdx)
+                
+                    if(result){
+                        result.avatar ? setAvatar(result.avatar) : setAvatar(imageName)
+                    }
+                }
+                if((state.links && state.links.length > 0) || (state.claimed && state.claimed.length > 0)){
+                        return true
+                }
             }
-            
-            if(state.links.length || state.claimed.length > 0){
-                return true
-            }
-
         }
 
         fetchData()

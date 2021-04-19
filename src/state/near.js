@@ -57,7 +57,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         wallet.balance = formatNearAmount((await wallet.account().getAccountBalance()).available, 2)
     }
 
-    const contract = await new nearAPI.Contract(wallet.account(), contractName, {
+    const contract = new nearAPI.Contract(wallet.account(), contractName, {
         changeMethods: ['send', 'create_account', 'create_account_and_claim'],
     })
 
@@ -139,6 +139,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
             }
         b++
         }
+        console.log('yes did owner', owner)
         if(owner != undefined){
             const ownerAccount = new nearAPI.Account(near.connection, owner)
             const ownerIdx = await ceramic.getCurrentUserIdx(ownerAccount, appIdx, didRegistryContract, owner)
@@ -169,7 +170,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
         }
     }
     
-    update('', { didRegistryContract, appIdx, accountId, curUserIdx, curInfo })
+    update('', { didRegistryContract, appIdx, accountId, curUserIdx, wallet, curInfo })
     }
     // check localLinks, see if they're still valid
 
@@ -197,6 +198,23 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     finished = true
 
     update('', { near, wallet, links, claimed, finished })
+}
+
+export async function login() {
+    const near = await nearAPI.connect({
+        networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
+    });
+    const connection = new nearAPI.WalletConnection(near)
+    connection.requestSignIn(contractName, 'Near Personas')
+}
+
+export async function logout() {
+    const near = await nearAPI.connect({
+        networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
+    });
+    const connection = new nearAPI.WalletConnection(near)
+    connection.signOut()
+    window.location.replace(window.location.origin)
 }
 
 export const unclaimLink = (keyToFind) => async ({ update }) => {
